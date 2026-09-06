@@ -161,6 +161,7 @@ class DumpImporter:
         skip_submissions: bool,
         skip_user_tests: bool,
         skip_users: bool,
+        temp_dir: str | None = None,
     ):
         self.drop = drop
         self.load_files = load_files
@@ -173,7 +174,7 @@ class DumpImporter:
         self.import_source = import_source
         self.import_dir = import_source
 
-        self.file_cacher = FileCacher()
+        self.file_cacher = FileCacher(temp_dir=temp_dir)
 
     def do_import(self):
         """Run the actual import code."""
@@ -478,7 +479,8 @@ class DumpImporter:
 
         # Put the file.
         try:
-            digest = self.file_cacher.put_file_from_path(path, description)
+            digest = self.file_cacher.put_file_from_path(
+                path, description, cache=False)
         except Exception as error:
             logger.critical("File %s could not be put to file server (%r), "
                             "aborting.", path, error)
@@ -514,6 +516,8 @@ def main():
                         help="don't import user tests")
     parser.add_argument("-X", "--no-users", action="store_true",
                         help="don't import users")
+    parser.add_argument("--temp-dir", metavar="PATH",
+                        help="directory for temporary file-cache data")
     parser.add_argument("import_source", action="store", type=utf8_decoder,
                         help="source directory or compressed file")
 
@@ -526,7 +530,8 @@ def main():
                             skip_generated=args.no_generated,
                             skip_submissions=args.no_submissions,
                             skip_user_tests=args.no_user_tests,
-                            skip_users=args.no_users)
+                            skip_users=args.no_users,
+                            temp_dir=args.temp_dir)
     success = importer.do_import()
     return 0 if success is True else 1
 

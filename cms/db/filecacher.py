@@ -492,7 +492,8 @@ class FileCacher:
     CHUNK_SIZE = 1024 * 1024  # 1 MiB
     backend: FileCacherBackend
 
-    def __init__(self, service: "Service | None" = None, path: str | None = None, null: bool = False):
+    def __init__(self, service: "Service | None" = None, path: str | None = None,
+                 null: bool = False, temp_dir: str | None = None):
         """Initialize.
 
         By default the database-powered backend will be used, but this
@@ -522,11 +523,13 @@ class FileCacher:
             self.backend = FSBackend(path)
 
         # First we create the config directories.
-        self._create_directory_or_die(config.global_.temp_dir)
+        if temp_dir is None:
+            temp_dir = config.global_.temp_dir
+        self._create_directory_or_die(temp_dir)
         self._create_directory_or_die(config.global_.cache_dir)
 
         if not self.is_shared():
-            self.file_dir = tempfile.mkdtemp(dir=config.global_.temp_dir)
+            self.file_dir = tempfile.mkdtemp(dir=temp_dir)
             # Delete this directory on exit since it has a random name and
             # won't be used again.
             atexit.register(lambda: rmtree(self.file_dir))
@@ -716,7 +719,8 @@ class FileCacher:
         with self.get_file(digest) as src:
             copyfileobj(src, dst, self.CHUNK_SIZE)
 
-    def get_file_to_path(self, digest: str, dst_path: str):
+    def get_file_to_path(self, digest: str, dst_path: str,
+                         cache: bool = True):
         """Retrieve a file from the storage.
 
         See `get_file'. This method will write the content of a file
@@ -731,11 +735,13 @@ class FileCacher:
         """
         if digest == Digest.TOMBSTONE:
             raise TombstoneError()
-        with self.get_file(digest) as src:
+        source = self.get_file(digest) if cache else self.backend.get_file(digest)
+        with source as src:
             with open(dst_path, 'wb') as dst:
                 copyfileobj(src, dst, self.CHUNK_SIZE)
 
-    def put_file_from_fobj(self, src: typing.IO[bytes], desc: str = "") -> str:
+    def put_file_from_fobj(self, src: typing.IO[bytes], desc: str = "",
+                           cache: bool = True) -> str:
         """Store a file in the storage.
 
         If it's already (for some reason...) in the cache send that
@@ -796,11 +802,15 @@ class FileCacher:
                     copyfileobj(src, fobj, self.CHUNK_SIZE)
                     self.backend.commit_file(fobj, digest, desc)
 
-            os.rename(dst.name, cache_file_path)
+            if cache:
+                os.rename(dst.name, cache_file_path)
+            else:
+                os.unlink(dst.name)
 
         return digest
 
-    def put_file_content(self, content: bytes, desc: str = "") -> str:
+    def put_file_content(self, content: bytes, desc: str = "",
+                         cache: bool = True) -> str:
         """Store a file in the storage.
 
         See `put_file_from_fobj'. This method will read the content of
@@ -814,9 +824,10 @@ class FileCacher:
 
         """
         with io.BytesIO(content) as src:
-            return self.put_file_from_fobj(src, desc)
+            return self.put_file_from_fobj(src, desc, cache=cache)
 
-    def put_file_from_path(self, src_path: str, desc: str = "") -> str:
+    def put_file_from_path(self, src_path: str, desc: str = "",
+                           cache: bool = True) -> str:
         """Store a file in the storage.
 
         See `put_file_from_fobj'. This method will read the content of
@@ -831,7 +842,7 @@ class FileCacher:
 
         """
         with open(src_path, 'rb') as src:
-            return self.put_file_from_fobj(src, desc)
+            return self.put_file_from_fobj(src, desc, cache=cache)
 
     def describe(self, digest: str) -> str:
         """Return the description of a file given its digest.

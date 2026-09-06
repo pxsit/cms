@@ -37,6 +37,7 @@ import os
 import sys
 import tarfile
 import tempfile
+from collections import deque
 from datetime import date
 
 from sqlalchemy.types import (
@@ -168,6 +169,7 @@ class DumpExporter:
         skip_submissions: bool,
         skip_user_tests: bool,
         skip_users: bool,
+        temp_dir: str | None = None,
     ):
         if contest_ids is None:
             with SessionGen() as session:
@@ -203,7 +205,7 @@ class DumpExporter:
             logger.warning("export_target not given, using \"%s\"",
                            self.export_target)
 
-        self.file_cacher = FileCacher()
+        self.file_cacher = FileCacher(temp_dir=temp_dir)
 
     def do_export(self):
         """Run the actual export code."""
@@ -261,9 +263,7 @@ class DumpExporter:
                 # We use strings because they'll be the keys of a JSON
                 # object
                 self.ids: dict[object, str] = {}
-                self.queue: list[Base] = []
-
-                data: dict[str, object] = dict()
+                self.queue = deque()
 
                 for cls, lst in [(Contest, self.contests_ids),
                                  (User, self.users_ids),
@@ -274,18 +274,22 @@ class DumpExporter:
                         self.get_id(obj)
 
                 # Specify the "root" of the data graph
-                data["_objects"] = list(self.ids.values())
-
-                while len(self.queue) > 0:
-                    obj = self.queue.pop(0)
-                    data[self.ids[obj.sa_identity_key]] = \
-                        self.export_object(obj)
-
-                data["_version"] = model_version
-
                 destination = os.path.join(export_dir, "contest.json")
                 with open(destination, "wt", encoding="utf-8") as fout:
-                    json.dump(data, fout, indent=4, sort_keys=True)
+                    fout.write('{\n    "_objects": ')
+                    json.dump(list(self.ids.values()), fout)
+                    fout.write(',\n')
+                    first = True
+                    while self.queue:
+                        obj = self.queue.popleft()
+                        if not first:
+                            fout.write(',\n')
+                        first = False
+                        fout.write('    ' + json.dumps(
+                            self.ids[obj.sa_identity_key]) + ': ')
+                        json.dump(self.export_object(obj), fout, indent=4,
+                                  sort_keys=True)
+                    fout.write(',\n    "_version": %d\n}\n' % model_version)
 
         # If the admin requested export to file, we do that.
         if archive_info["write_mode"] != "":
@@ -404,7 +408,7 @@ class DumpExporter:
 
         # First get the file
         try:
-            self.file_cacher.get_file_to_path(digest, path)
+            self.file_cacher.get_file_to_path(digest, path, cache=False)
         except Exception:
             logger.error("File %s could not retrieved from file server.",
                          digest, exc_info=True)
@@ -444,6 +448,8 @@ def main():
                         help="don't export user tests")
     parser.add_argument("-X", "--no-users", action="store_true",
                         help="don't export users")
+    parser.add_argument("--temp-dir", metavar="PATH",
+                        help="directory for temporary file-cache data")
     parser.add_argument("export_target", action="store",
                         type=utf8_decoder, nargs='?', default="",
                         help="target directory or archive for export")
@@ -457,7 +463,8 @@ def main():
                             skip_generated=args.no_generated,
                             skip_submissions=args.no_submissions,
                             skip_user_tests=args.no_user_tests,
-                            skip_users=args.no_users)
+                            skip_users=args.no_users,
+                            temp_dir=args.temp_dir)
     success = exporter.do_export()
     return 0 if success is True else 1
 
