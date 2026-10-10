@@ -205,7 +205,17 @@
         </tr>
     </thead>
     <tbody>
-{% for t_iter in contest.tasks %}
+{% for t_iter in visible_tasks %}
+    {% if t_iter.is_notice %}
+        <tr>
+            <th>{{ t_iter.name }}</th>
+            <td>{{ t_iter.title }} <span class="label">{% trans %}Notice{% endtrans %}</span></td>
+            <td colspan="4"></td>
+        {% if tokens_contest != TOKEN_MODE_DISABLED and tokens_tasks != TOKEN_MODE_DISABLED %}
+            <td></td>
+        {% endif %}
+        </tr>
+    {% else %}
         {% set task_allowed_languages = t_iter.get_allowed_languages() %}
         {% set extensions = "[%s]"|format(task_allowed_languages|map("to_language")|map(attribute="source_extension")|unique|join("|")) %}
         <tr>
@@ -237,6 +247,7 @@
             </td>
     {% endif %}
         </tr>
+    {% endif %}
 {% endfor %}
     </tbody>
 </table>

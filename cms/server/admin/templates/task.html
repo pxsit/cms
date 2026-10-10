@@ -48,6 +48,21 @@ $("select[name=task_type_{{ dataset.id }}]").change(function() {
     <table>
       <tr><td colspan=2><h2>Task information</h2></td></tr>
       <tr>
+        <td>Mode (permanent)</td>
+        <td>{{ "Notice" if task.is_notice else "Normal task" }}
+          <p>The mode cannot be changed after creation. Notices accept no submissions or tests
+             and never appear on the scoreboard.</p>
+        </td>
+      </tr>
+      <tr>
+        <td>Audience</td>
+        <td>
+          {% set audience_restricted = task.restricted %}
+          {% set audience_allowed_users = task.allowed_users %}
+          {% include "task_audience.html" %}
+        </td>
+      </tr>
+      <tr>
         <td>
           <span class="info" title="A short name for the task, preferably using only letters, numbers and underscores."></span>
           Name

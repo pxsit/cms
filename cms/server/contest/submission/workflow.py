@@ -123,6 +123,11 @@ def accept_submission(
 
     # Check whether the contestant is allowed to submit.
 
+    if task.is_notice or not task.is_visible_to(participation):
+        raise UnacceptableSubmission(
+            N_("Submissions not allowed"),
+            N_("You cannot submit to this task."))
+
     if not override_max_number:
         if not check_max_number(sql_session, contest.max_submission_number,
                                 participation, contest=contest):
@@ -339,6 +344,9 @@ def accept_user_test(
     assert task.contest is contest
 
     # Check whether the task is testable.
+
+    if task.is_notice or not task.is_visible_to(participation):
+        raise TestingNotAllowed()
 
     task_type = task.active_dataset.task_type_object
     if not task_type.testable:

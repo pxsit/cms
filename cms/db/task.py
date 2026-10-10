@@ -31,7 +31,7 @@ from datetime import timedelta
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.collections import attribute_mapped_collection
-from sqlalchemy.schema import Column, ForeignKey, CheckConstraint, \
+from sqlalchemy.schema import Column, ForeignKey, CheckConstraint, Table, \
     UniqueConstraint, ForeignKeyConstraint
 from sqlalchemy.types import Boolean, Integer, Float, String, Unicode, \
     Interval, Enum, BigInteger
@@ -40,13 +40,23 @@ from cms import TOKEN_MODE_DISABLED, TOKEN_MODE_FINITE, TOKEN_MODE_INFINITE, \
     FEEDBACK_LEVEL_FULL, FEEDBACK_LEVEL_RESTRICTED, FEEDBACK_LEVEL_OI_RESTRICTED
 from cmscommon.constants import \
     SCORE_MODE_MAX, SCORE_MODE_MAX_SUBTASK, SCORE_MODE_MAX_TOKENED_LAST
-from . import Codename, Filename, FilenameSchemaArray, Digest, Base, Contest
+from . import Codename, Filename, FilenameSchemaArray, Digest, Base, Contest, \
+    User, metadata
 
 import typing
 if typing.TYPE_CHECKING:
     from cms.grading.scoretypes import ScoreType
     from cms.grading.tasktypes import TaskType
     from . import Submission, UserTest
+
+
+task_allowed_users = Table(
+    'task_allowed_users', metadata,
+    Column('task_id', Integer, ForeignKey('tasks.id', ondelete='CASCADE',
+                                        onupdate='CASCADE'), primary_key=True),
+    Column('user_id', Integer, ForeignKey('users.id', ondelete='CASCADE',
+                                        onupdate='CASCADE'), primary_key=True),
+)
 
 
 class Task(Base):
@@ -278,6 +288,20 @@ class Task(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
         back_populates="task")
+
+    # Notice mode and audience are independent of the grading task type.
+    is_notice: bool = Column(Boolean, nullable=False, default=False)
+    restricted: bool = Column(Boolean, nullable=False, default=False)
+    allowed_users: list[User] = relationship(User, secondary=task_allowed_users)
+
+    def is_visible_to(self, participation) -> bool:
+        """An empty restricted audience grants access to no contestants."""
+        return participation is not None and (
+            not self.restricted or participation.user in self.allowed_users)
+
+    @property
+    def ranked(self) -> bool:
+        return not self.is_notice and not self.restricted
 
     def get_allowed_languages(self) -> list[str] | None:
         """Get the list of allowed languages for this task.

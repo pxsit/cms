@@ -26,6 +26,7 @@ import gevent.monkey
 gevent.monkey.patch_all()  # noqa
 
 import unittest
+import json
 from unittest.mock import patch, PropertyMock
 
 import gevent
@@ -107,6 +108,31 @@ class TestProxyService(DatabaseMixin, unittest.TestCase):
         self.assertTrue(any(urls[i].endswith("tasks/") for i in [1, 2, 3]))
         self.assertTrue(urls[4].endswith("submissions/"))
         self.assertTrue(urls[5].endswith("subchanges/"))
+
+    def test_restricted_task_is_removed_and_public_scores_are_restored(self):
+        self.task.restricted = True
+        self.session.commit()
+        with patch("requests.delete") as delete:
+            delete.return_value.status_code = 204
+            proxy = ProxyService(0, self.contest.id)
+            gevent.sleep(0.1)
+            self.assertTrue(delete.called)
+            urls = [args[0] for args, _ in self.requests_put.call_args_list]
+            self.assertFalse(any(url.endswith(("tasks/", "submissions/", "subchanges/"))
+                                 for url in urls))
+
+            self.task.restricted = False
+            self.session.commit()
+            self.requests_put.reset_mock()
+            proxy.reinitialize()
+            gevent.sleep(0.1)
+            payloads = [(args[0], json.loads(args[1]))
+                        for args, _ in self.requests_put.call_args_list]
+            self.assertTrue(any(url.endswith("tasks/") for url, _ in payloads))
+            changes = [change for url, data in payloads if url.endswith("subchanges/")
+                       for change in data.values()]
+            self.assertTrue(any(change.get("score") == 100 for change in changes))
+            self.assertTrue(any(change.get("token") for change in changes))
 
 
 if __name__ == "__main__":

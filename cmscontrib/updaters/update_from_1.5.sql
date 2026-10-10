@@ -133,4 +133,15 @@ WHERE user_test_managers.user_test_id IN (
 )
 AND user_test_managers.filename LIKE 'stub.%';
 
+-- Notice mode and explicit task audiences (data-model version 50).
+ALTER TABLE public.tasks ADD COLUMN is_notice boolean NOT NULL DEFAULT false;
+ALTER TABLE public.tasks ADD COLUMN restricted boolean NOT NULL DEFAULT false;
+ALTER TABLE public.tasks ALTER COLUMN is_notice DROP DEFAULT;
+ALTER TABLE public.tasks ALTER COLUMN restricted DROP DEFAULT;
+CREATE TABLE public.task_allowed_users (
+    task_id integer NOT NULL REFERENCES public.tasks(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    user_id integer NOT NULL REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    PRIMARY KEY (task_id, user_id)
+);
+
 COMMIT;

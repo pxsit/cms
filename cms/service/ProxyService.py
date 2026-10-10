@@ -114,6 +114,22 @@ def safe_url(url: str) -> str:
     return parts._replace(netloc=netloc).geturl()
 
 
+def safe_delete_task(ranking: str, task_id: str):
+    """Remove a task and its dependent scores, including after a restart."""
+    url = urljoin(ranking, "tasks/%s" % task_id)
+    auth = urlsplit(url)
+    try:
+        response = requests.delete(
+            url, auth=(auth.username, auth.password),
+            verify=config.proxy_service.https_certfile)
+    except requests.exceptions.RequestException as error:
+        raise CannotSendError("Failed to remove task from ranking") from error
+    # Deletion is idempotent: a never-published task is already absent.
+    if response.status_code != 404 and not 200 <= response.status_code < 300:
+        raise CannotSendError("Status %s removing task from ranking"
+                              % response.status_code)
+
+
 class ProxyOperation(QueueItem):
 
     def __init__(self, type_: int, data: dict):
@@ -207,7 +223,22 @@ class ProxyExecutor(Executor[ProxyOperation]):
         for entry in entries:
             data[entry.item.type_].update(entry.item.data)
 
+        # None is a tombstone. A later task update in this batch supersedes it.
+        excluded_tasks = {key for key, value in data[self.TASK_TYPE].items()
+                          if value is None}
+        excluded_submissions = {
+            key for key, value in data[self.SUBMISSION_TYPE].items()
+            if value["task"] in excluded_tasks}
+        for key in excluded_submissions:
+            del data[self.SUBMISSION_TYPE][key]
+        data[self.SUBCHANGE_TYPE] = {
+            key: value for key, value in data[self.SUBCHANGE_TYPE].items()
+            if value["submission"] not in excluded_submissions}
+
         try:
+            for key in excluded_tasks:
+                safe_delete_task(self._ranking, key)
+                del data[self.TASK_TYPE][key]
             for i in range(self.TYPE_COUNT):
                 # Send entities of type i.
                 if len(data[i]) > 0:
@@ -223,7 +254,10 @@ class ProxyExecutor(Executor[ProxyOperation]):
                     data[i].clear()
 
         except CannotSendError:
-            # A log message has already been produced.
+            # Keep failed deletions and updates queued until the ranking recovers.
+            logger.warning("Ranking update failed; retrying.")
+            for entry in entries:
+                self.enqueue(entry.item, entry.priority, entry.timestamp)
             gevent.sleep(self.FAILURE_WAIT)
         except:
             # Whoa! That's unexpected!
@@ -295,6 +329,8 @@ class ProxyService(TriggeredService[ProxyOperation, ProxyExecutor]):
                 .filter(Submission.official).all()
 
             for submission in submissions:
+                if not submission.task.ranked:
+                    continue
                 # The submission result can be None if the dataset has
                 # been just made live.
                 sr = submission.get_result()
@@ -363,6 +399,9 @@ class ProxyService(TriggeredService[ProxyOperation, ProxyExecutor]):
             tasks = dict()
 
             for task in contest.tasks:
+                if not task.ranked:
+                    tasks[encode_id(task.name)] = None
+                    continue
                 score_type = task.active_dataset.score_type_object
                 tasks[encode_id(task.name)] = {
                     "short_name": task.name,
@@ -388,6 +427,8 @@ class ProxyService(TriggeredService[ProxyOperation, ProxyExecutor]):
         queues for them to be sent to rankings.
 
         """
+        if not submission.task.ranked:
+            return []
         submission_result = submission.get_result()
 
         # Data to send to remote rankings.
@@ -423,6 +464,8 @@ class ProxyService(TriggeredService[ProxyOperation, ProxyExecutor]):
         queues for them to be sent to rankings.
 
         """
+        if not submission.task.ranked:
+            return []
         # Data to send to remote rankings.
         submission_id = "%d" % submission.id
         submission_data = {
@@ -455,7 +498,11 @@ class ProxyService(TriggeredService[ProxyOperation, ProxyExecutor]):
 
         """
         logger.info("Reinitializing rankings.")
+        # A task made public again needs its previous scores and tokens replayed.
+        self.scores_sent_to_rankings.clear()
+        self.tokens_sent_to_rankings.clear()
         self.initialize()
+        self._missing_operations()
 
     @rpc_method
     def submission_scored(self, submission_id: int):
@@ -546,7 +593,7 @@ class ProxyService(TriggeredService[ProxyOperation, ProxyExecutor]):
                 self.enqueue(operation)
 
     @rpc_method
-    def dataset_updated(self, task_id: int):
+    def dataset_updated(self, task_id: int, previous_name: str | None = None):
         """Notice that the active dataset of a task has been changed.
 
         Usually called by AdminWebServer when the contest administrator
@@ -557,6 +604,7 @@ class ProxyService(TriggeredService[ProxyOperation, ProxyExecutor]):
         ScoringService to notify us that the new ones are available.
 
         task_id: the ID of the task whose dataset has changed.
+        previous_name: the previous task name, when an admin renamed it.
 
         """
         with SessionGen() as session:
@@ -575,14 +623,11 @@ class ProxyService(TriggeredService[ProxyOperation, ProxyExecutor]):
             logger.info("Dataset update for task %d (dataset now is %d).",
                         task.id, dataset.id)
 
+            if previous_name is not None and previous_name != task.name:
+                self.enqueue(ProxyOperation(ProxyExecutor.TASK_TYPE,
+                                            {encode_id(previous_name): None}))
+
             # max_score and/or extra_headers might have changed.
             self.reinitialize()
 
-            for submission in task.submissions:
-                # Update RWS.
-                if not submission.participation.hidden and \
-                        submission.official and \
-                        submission.get_result() is not None and \
-                        submission.get_result().scored():
-                    for operation in self.operations_for_score(submission):
-                        self.enqueue(operation)
+            # Reinitialization replays existing official scores and tokens.

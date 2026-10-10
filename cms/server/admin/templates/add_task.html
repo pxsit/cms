@@ -13,6 +13,17 @@
   Name:
   <input type="text" name="name">
 
+  <label for="task_mode">Mode (permanent)</label>
+  <select id="task_mode" name="task_mode">
+    <option value="normal">Normal task</option>
+    <option value="notice">Notice</option>
+  </select>
+  <p>A notice displays statements and attachments, accepts no submissions or tests,
+     and never appears on the scoreboard. The mode cannot be changed later.</p>
+  {% set audience_restricted = false %}
+  {% set audience_allowed_users = [] %}
+  {% include "task_audience.html" %}
+
   <input type="submit">
 </form>
 

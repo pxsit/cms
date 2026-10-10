@@ -357,7 +357,7 @@ class DumpExporter:
             if self.skip_users:
                 skip = False
                 # User-related classes reachable from root
-                for rel_class in [Participation, Submission, UserTest,
+                for rel_class in [User, Participation, Submission, UserTest,
                                   Announcement]:
                     if other_cls is rel_class:
                         skip = True

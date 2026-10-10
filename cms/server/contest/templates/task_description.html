@@ -16,7 +16,9 @@
 
 
 <div class="page-header">
-    <h1>{% trans name=task.title, short_name=task.name %}{{ name }} ({{ short_name }}) <small>description</small>{% endtrans %}</h1>
+    <h1>{% trans name=task.title, short_name=task.name %}{{ name }} ({{ short_name }}) <small>description</small>{% endtrans %}
+        {% if task.is_notice %}<span class="label">{% trans %}Notice{% endtrans %}</span>{% endif %}
+    </h1>
 </div>
 
 
@@ -91,6 +93,7 @@
 {% endif %}
 
 
+{% if not task.is_notice %}
 <h2>{% trans %}Some details{% endtrans %}</h2>
 
 <table class="table table-bordered table-nohover" style="table-layout: fixed">
@@ -168,6 +171,7 @@
 {% endif %}
     </tbody>
 </table>
+{% endif %}
 
 
 

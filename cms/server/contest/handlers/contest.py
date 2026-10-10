@@ -208,6 +208,11 @@ class ContestHandler(BaseHandler):
 
         ret["questions_enabled"] = self.contest.allow_questions
         ret["testing_enabled"] = self.contest.allow_user_tests
+        ret["visible_tasks"] = [
+            task for task in self.contest.tasks
+            if task.is_visible_to(self.current_user)]
+        ret["submittable_tasks"] = [
+            task for task in ret["visible_tasks"] if not task.is_notice]
 
         if self.current_user is not None:
             participation = self.current_user
@@ -236,7 +241,7 @@ class ContestHandler(BaseHandler):
         # some information about token configuration
         ret["tokens_contest"] = self.contest.token_mode
 
-        t_tokens = set(t.token_mode for t in self.contest.tasks)
+        t_tokens = set(t.token_mode for t in ret["submittable_tasks"])
         if len(t_tokens) == 1:
             ret["tokens_tasks"] = next(iter(t_tokens))
         else:
@@ -251,7 +256,7 @@ class ContestHandler(BaseHandler):
         """
         return self.contest_url()
 
-    def get_task(self, task_name: str) -> Task | None:
+    def get_task(self, task_name: str, *, allow_notice: bool = False) -> Task | None:
         """Return the task in the contest with the given name.
 
         task_name: the name of the task we are interested in.
@@ -259,10 +264,15 @@ class ContestHandler(BaseHandler):
         return: the corresponding task object, if found.
 
         """
-        return self.sql_session.query(Task) \
+        task = self.sql_session.query(Task) \
             .filter(Task.contest == self.contest) \
             .filter(Task.name == task_name) \
             .one_or_none()
+        if task is None or not task.is_visible_to(self.current_user):
+            return None
+        if task.is_notice and not allow_notice:
+            return None
+        return task
 
     def get_submission(self, task: Task, opaque_id: str | int) -> Submission | None:
         """Return the num-th contestant's submission on the given task.

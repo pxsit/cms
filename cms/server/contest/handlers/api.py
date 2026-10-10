@@ -116,17 +116,17 @@ class ApiTaskListHandler(ApiContestHandler):
     @actual_phase_required(0, 3)
     @multi_contest
     def get(self):
-        contest = self.contest
         tasks = []
-        for task in contest.tasks:
+        for task in self.r_params["visible_tasks"]:
             name = task.name
             statements = [s for s in task.statements]
-            sub_format = task.submission_format
+            sub_format = [] if task.is_notice else task.submission_format
             tasks.append(
                 {
                     "name": name,
                     "statements": statements,
                     "submission_format": sub_format,
+                    "is_notice": task.is_notice,
                 }
             )
         self.json({"tasks": tasks})

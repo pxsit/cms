@@ -1,0 +1,25 @@
+<label for="task_visibility">Visibility</label>
+<select id="task_visibility" name="visibility">
+  <option value="everyone" {{ "selected" if not audience_restricted else "" }}>Everyone</option>
+  <option value="selected" {{ "selected" if audience_restricted else "" }}>Selected users</option>
+</select>
+<p>Tasks visible to selected users are excluded from the scoreboard and ranking totals.
+   An empty selection makes the task visible only to admins.</p>
+<div id="task_audience_users">
+  <label for="task_allowed_users">Allowed users</label>
+  <select id="task_allowed_users" name="allowed_users" multiple size="8">
+    {% for audience_user in audience_users %}
+    <option value="{{ audience_user.id }}" {{ "selected" if audience_user in audience_allowed_users else "" }}>{{ audience_user.username }} — {{ audience_user.first_name }} {{ audience_user.last_name }}</option>
+    {% endfor %}
+  </select>
+  <p>Select one or more users (Ctrl/Cmd-click for multiple selections).</p>
+</div>
+<script>
+$(function () {
+  function updateAudience() {
+    $('#task_audience_users').toggle($('#task_visibility').val() === 'selected');
+  }
+  $('#task_visibility').change(updateAudience);
+  updateAudience();
+});
+</script>

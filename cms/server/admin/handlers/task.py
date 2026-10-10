@@ -39,7 +39,7 @@ except:
 
 import tornado.web
 
-from cms.db import Attachment, Dataset, Session, Statement, Submission, Task
+from cms.db import Attachment, Dataset, Session, Statement, Submission, Task, User
 from cmscommon.datetime import make_datetime
 from .base import BaseHandler, SimpleHandler, require_permission
 
@@ -47,7 +47,29 @@ from .base import BaseHandler, SimpleHandler, require_permission
 logger = logging.getLogger(__name__)
 
 
+def read_task_audience(handler, attrs):
+    visibility = handler.get_argument("visibility", None)
+    if visibility is None:
+        # Older clients editing another field must not expose a private task.
+        return
+    if visibility not in ("everyone", "selected"):
+        raise ValueError("Invalid task visibility")
+    selected_ids = {int(value) for value in handler.get_arguments("allowed_users")}
+    users = handler.sql_session.query(User).filter(User.id.in_(selected_ids)).all()
+    if {user.id for user in users} != selected_ids:
+        raise ValueError("Unknown user in the task audience")
+    attrs["restricted"] = visibility == "selected"
+    attrs["allowed_users"] = users
+
+
 class AddTaskHandler(SimpleHandler("add_task.html", permission_all=True)):
+    @require_permission(BaseHandler.PERMISSION_ALL)
+    def get(self):
+        params = self.render_params()
+        params["audience_users"] = \
+            self.sql_session.query(User).order_by(User.username).all()
+        self.render("add_task.html", **params)
+
     @require_permission(BaseHandler.PERMISSION_ALL)
     def post(self):
         fallback_page = self.url("tasks", "add")
@@ -58,6 +80,11 @@ class AddTaskHandler(SimpleHandler("add_task.html", permission_all=True)):
             self.get_string(attrs, "name", empty=None)
             assert attrs.get("name") is not None, "No task name specified."
             attrs["title"] = attrs["name"]
+            mode = self.get_argument("task_mode", "normal")
+            if mode not in ("normal", "notice"):
+                raise ValueError("Invalid task mode")
+            attrs["is_notice"] = mode == "notice"
+            read_task_audience(self, attrs)
 
             # Set default submission format as ["taskname.%l"]
             attrs["submission_format"] = ["%s.%%l" % attrs["name"]]
@@ -115,6 +142,8 @@ class TaskHandler(BaseHandler):
         self.r_params = self.render_params()
         self.r_params["task"] = task
         self.r_params["primary_statements"] = task.primary_statements
+        self.r_params["audience_users"] = \
+            self.sql_session.query(User).order_by(User.username).all()
         self.r_params["submissions"] = \
             self.sql_session.query(Submission)\
                 .join(Task).filter(Task.id == task_id)\
@@ -124,9 +153,16 @@ class TaskHandler(BaseHandler):
     @require_permission(BaseHandler.PERMISSION_ALL)
     def post(self, task_id):
         task = self.safe_get_item(Task, task_id)
+        previous_name = task.name
 
         try:
             attrs = task.get_attrs()
+
+            # Mode is chosen once at creation; only the audience can change.
+            mode = "notice" if task.is_notice else "normal"
+            if self.get_argument("task_mode", mode) != mode:
+                raise ValueError("Task mode cannot be changed after creation")
+            read_task_audience(self, attrs)
 
             self.get_string(attrs, "name", empty=None)
             self.get_string(attrs, "title")
@@ -219,7 +255,7 @@ class TaskHandler(BaseHandler):
         if self.try_commit():
             # Update the task and score on RWS.
             self.service.proxy_service.dataset_updated(
-                task_id=task.id)
+                task_id=task.id, previous_name=previous_name)
         self.redirect(self.url("task", task_id))
 
 

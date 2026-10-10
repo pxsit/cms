@@ -6,6 +6,34 @@ In the following text "user" and "contestant" are used interchangeably. A "parti
 Configuration parameters will be referred to using their internal name, but it should always be easy to infer what fields control them in the AWS interface by using their label.
 
 
+Notices and task visibility
+==========================
+
+When adding a task in the admin interface, choose either **Normal task** or
+**Notice**. This choice is permanent. Both modes retain the normal editable
+name and title. Notices appear in the task list with a separate Notice label,
+display only statements and attachments, and follow normal statement timing.
+They accept neither submissions nor user tests and never appear in rankings.
+
+The independent **Visibility** setting can be changed at any time:
+
+* **Everyone** gives all contestants in the contest access.
+* **Selected users** gives access only to the selected accounts. With no users
+  selected, only admins can view the task through the admin interface.
+
+Restricted tasks are omitted from contestant task lists, file downloads, and
+APIs for users outside the audience. All tasks using Selected users are excluded
+from scoreboard columns and ranking totals, including normal tasks. Changing
+the audience preserves existing submissions. Switching a normal task back to
+Everyone restores its existing official scores and tokens when ProxyService
+synchronizes the ranking.
+
+Existing databases using data-model version 49 can apply
+``cmscontrib/updaters/update_50.sql`` before restarting CMS services. Older dumps
+are upgraded automatically with the existing dump updater; their tasks remain
+normal and visible to everyone. Back up the database before applying migrations.
+
+
 .. _configuringacontest_limitations:
 
 Limitations
