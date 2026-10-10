@@ -29,7 +29,9 @@ Everyone restores its existing official scores and tokens when ProxyService
 synchronizes the ranking.
 
 Existing databases using data-model version 49 can apply
-``cmscontrib/updaters/update_50.sql`` before restarting CMS services. Older dumps
+``cmscontrib/updaters/update_50.sql`` followed by
+``cmscontrib/updaters/update_51.sql`` before restarting CMS services. Version 50
+databases need only ``update_51.sql`` to add the task counter settings. Older dumps
 are upgraded automatically with the existing dump updater; their tasks remain
 normal and visible to everyone. Back up the database before applying migrations.
 
