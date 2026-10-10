@@ -7,7 +7,8 @@ from unittest.mock import MagicMock
 import pytest
 
 from cms.db import Task, User, Statement, Attachment
-from cms.server.admin.handlers.task import AddTaskHandler, TaskHandler, read_task_audience
+from cms.server.admin.handlers.task import (
+    AddTaskHandler, TaskHandler, read_task_audience, read_notice_presentation)
 from cms.server.contest.handlers.api import ApiSubmitHandler, ApiTaskListHandler
 from cms.server.contest.handlers.task import (
     TaskDescriptionHandler, TaskStatementViewHandler, TaskAttachmentViewHandler)
@@ -205,8 +206,8 @@ def test_notice_template_renders_statement_without_grading_details(task):
     html = env.get_template("task_description.html").render(
         task=task, gettext=lambda message: message,
         contest_url=lambda *parts: "/" + "/".join(parts))
-    assert task.title in html and "Notice" in html
-    assert "Download task statement" in html
+    assert task.title in html and 'class="label"' not in html
+    assert "Download PDF" in html
     assert "Some details" not in html and "Time limit" not in html
     assert "Submissions" not in html
 
@@ -215,8 +216,67 @@ def test_edited_templates_compile():
     from cms.server.admin.jinja2_toolbox import AWS_ENVIRONMENT
     from cms.server.contest.jinja2_toolbox import CWS_ENVIRONMENT
 
-    for name in ("add_task.html", "task.html", "task_audience.html"):
+    for name in ("add_task.html", "task.html", "task_audience.html", "notice_presentation.html"):
         AWS_ENVIRONMENT.get_template(name)
     for name in ("contest.html", "overview.html", "communication.html",
                  "task_description.html", "test_interface.html"):
         CWS_ENVIRONMENT.get_template(name)
+
+
+def test_custom_html_is_sandboxed_and_pdf_button_is_independent(task):
+    from bs4 import BeautifulSoup
+    from jinja2 import ChoiceLoader, DictLoader
+    from cms.server.contest.jinja2_toolbox import CWS_ENVIRONMENT
+
+    task.notice_label = "For you"
+    task.notice_intro_html = '<style>body { color: pink; }</style><h2>Hello</h2><script>parent.alert(1)</script>" onload="alert(1)'
+    task.notice_button_text = '<img src=x onerror="alert(1)"> Read the letter'
+    task.notice_button_color = "#123456"
+    task.notice_button_radius = 24
+    task.statements["en"] = Statement(language="en", digest="a" * 64)
+    env = CWS_ENVIRONMENT.overlay(loader=ChoiceLoader([
+        DictLoader({"contest.html": "{% block core %}{% endblock %}"}),
+        CWS_ENVIRONMENT.loader]))
+    html = env.get_template("task_description.html").render(
+        task=task, gettext=lambda message: message,
+        contest_url=lambda *parts: "/" + "/".join(parts))
+    soup = BeautifulSoup(html, "html.parser")
+    frame = soup.select_one("iframe.notice-introduction")
+    assert frame["sandbox"] == []
+    assert frame["srcdoc"] == task.notice_intro_html
+    assert not frame.has_attr("onload")
+    assert not soup.find("script") and not soup.find("img")
+    button = soup.select_one("a.notice-pdf-button")
+    assert button.get_text(strip=True) == task.notice_button_text
+    assert button.has_attr("download")
+    assert button["href"].startswith("/tasks/notice/statements/en/")
+    assert "#123456" in button["style"] and "24px" in button["style"]
+    assert frame.parent == button.parent.parent
+    assert "For you" in html and "description</small>" not in html
+
+
+@pytest.mark.parametrize("field,value", [
+    ("notice_button_color", "red;position:fixed"),
+    ("notice_button_text_color", "#fff"),
+    ("notice_button_text", " "), ("notice_label", "x" * 121),
+    ("notice_intro_height", "0"), ("notice_intro_height", "2001"),
+    ("notice_button_radius", "-1"), ("notice_button_radius", "101")])
+def test_invalid_notice_presentation_is_rejected(task, field, value):
+    request = handler(TaskHandler, task, task.allowed_users[0])
+    request.get_argument = lambda name, default=None: value if name == field else default
+    with pytest.raises(ValueError):
+        read_notice_presentation(request, task.get_attrs())
+
+
+def test_notice_presentation_accepts_html_css_and_custom_labels(task):
+    values = {"notice_label": "Open the letter", "notice_intro_html": "<h2>Hello</h2>",
+              "notice_intro_height": "320", "notice_button_text": "Read it",
+              "notice_button_color": "#abcdef", "notice_button_text_color": "#012345",
+              "notice_button_radius": "12"}
+    request = handler(TaskHandler, task, task.allowed_users[0])
+    request.get_argument = lambda name, default=None: values.get(name, default)
+    attrs = task.get_attrs()
+    read_notice_presentation(request, attrs)
+    assert attrs["notice_intro_html"] == values["notice_intro_html"]
+    assert attrs["notice_button_text"] == "Read it"
+    assert attrs["notice_intro_height"] == 320 and attrs["notice_button_radius"] == 12

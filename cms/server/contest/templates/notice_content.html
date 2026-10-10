@@ -1,0 +1,18 @@
+{% if task.notice_label %}<h2>{{ task.notice_label }}</h2>{% endif %}
+{% if task.notice_intro_html %}
+<iframe class="notice-introduction" title="{{ task.notice_label or task.title }}"
+        sandbox="" referrerpolicy="no-referrer"
+        style="display:block;width:100%;height:{{ task.notice_intro_height }}px;border:0;margin-bottom:20px"
+        srcdoc="{{ task.notice_intro_html }}"></iframe>
+{% endif %}
+<div class="notice-pdf-buttons">
+{% for statement in task.statements.values()|sort(attribute="language") %}
+    <a href="{{ statement_url(statement.language) }}" download
+       class="btn btn-large notice-pdf-button"
+       style="background:{{ task.notice_button_color }};color:{{ task.notice_button_text_color }};border-color:{{ task.notice_button_color }};border-radius:{{ task.notice_button_radius }}px;text-shadow:none;margin:0 8px 12px 0">
+        {{ task.notice_button_text }}{% if task.statements|length > 1 %} ({{ statement.language|format_locale }}){% endif %}
+    </a>
+{% else %}
+    <p>{% trans %}No PDF available yet.{% endtrans %}</p>
+{% endfor %}
+</div>

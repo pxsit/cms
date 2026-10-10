@@ -11,7 +11,7 @@ Notices and task visibility
 
 When adding a task in the admin interface, choose either **Normal task** or
 **Notice**. This choice is permanent. Both modes retain the normal editable
-name and title. Notices appear in the task list with a separate Notice label,
+name and title. Notices appear in the task list using those names and titles,
 display only statements and attachments, and follow normal statement timing.
 They accept neither submissions nor user tests and never appear in rankings.
 
@@ -31,9 +31,22 @@ synchronizes the ranking.
 Existing databases using data-model version 49 can apply
 ``cmscontrib/updaters/update_50.sql`` followed by
 ``cmscontrib/updaters/update_51.sql`` before restarting CMS services. Version 50
-databases need only ``update_51.sql`` to add the task counter settings. Older dumps
+databases need ``update_51.sql`` to add the task counter settings. All existing
+databases then need ``cmscontrib/updaters/update_52.sql`` for notice presentation.
+Older dumps
 are upgraded automatically with the existing dump updater; their tasks remain
 normal and visible to everyone. Back up the database before applying migrations.
+
+For a notice, the task editor also provides **Notice presentation** settings.
+The section/menu label replaces Statement for that notice; leaving it empty
+hides the heading and uses Open in the menu. Enter HTML and CSS in the
+introduction field to display a custom block above the PDF buttons. The live
+preview and contestant view use a sandboxed iframe without JavaScript, forms,
+or access to the surrounding contest page. Set the introduction height to fit
+your content; longer content scrolls within the block. You can customize the
+PDF button text, background, text color, and corner radius. The generated PDF
+links retain the task audience checks. Multiple PDFs receive language labels.
+Notice pages use the task title without technical description or Notice labels.
 
 
 .. _configuringacontest_limitations:

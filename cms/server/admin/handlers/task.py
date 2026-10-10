@@ -28,6 +28,7 @@
 """
 
 import logging
+import re
 import traceback
 
 import collections
@@ -60,6 +61,27 @@ def read_task_audience(handler, attrs):
         raise ValueError("Unknown user in the task audience")
     attrs["restricted"] = visibility == "selected"
     attrs["allowed_users"] = users
+
+
+def read_notice_presentation(handler, attrs):
+    for name in ("notice_label", "notice_intro_html", "notice_button_text"):
+        handler.get_string(attrs, name)
+    for name in ("notice_label", "notice_button_text"):
+        if len(attrs[name]) > 120:
+            raise ValueError("Notice labels must be at most 120 characters")
+    if not attrs["notice_button_text"].strip():
+        raise ValueError("The PDF button needs a label")
+    if len(attrs["notice_intro_html"]) > 200000:
+        raise ValueError("Notice introduction must be at most 200000 characters")
+    for name in ("notice_button_color", "notice_button_text_color"):
+        handler.get_string(attrs, name)
+        if re.fullmatch(r"#[0-9a-fA-F]{6}", attrs[name]) is None:
+            raise ValueError("Button colors must be six-digit hex colors")
+    for name, minimum, maximum in (("notice_intro_height", 80, 2000),
+                                   ("notice_button_radius", 0, 100)):
+        handler.get_int(attrs, name)
+        if attrs[name] is None or not minimum <= attrs[name] <= maximum:
+            raise ValueError("Invalid notice height or button corner radius")
 
 
 class AddTaskHandler(SimpleHandler("add_task.html", permission_all=True)):
@@ -166,6 +188,8 @@ class TaskHandler(BaseHandler):
 
             self.get_string(attrs, "name", empty=None)
             self.get_string(attrs, "title")
+            if task.is_notice:
+                read_notice_presentation(self, attrs)
 
             assert attrs.get("name") is not None, "No task name specified."
 

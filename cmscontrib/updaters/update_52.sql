@@ -1,0 +1,16 @@
+BEGIN;
+ALTER TABLE tasks ADD COLUMN notice_label varchar NOT NULL DEFAULT 'Statement';
+ALTER TABLE tasks ADD COLUMN notice_intro_html varchar NOT NULL DEFAULT '';
+ALTER TABLE tasks ADD COLUMN notice_intro_height integer NOT NULL DEFAULT 240 CHECK (notice_intro_height BETWEEN 80 AND 2000);
+ALTER TABLE tasks ADD COLUMN notice_button_text varchar NOT NULL DEFAULT 'Download PDF';
+ALTER TABLE tasks ADD COLUMN notice_button_color varchar NOT NULL DEFAULT '#8b5963';
+ALTER TABLE tasks ADD COLUMN notice_button_text_color varchar NOT NULL DEFAULT '#ffffff';
+ALTER TABLE tasks ADD COLUMN notice_button_radius integer NOT NULL DEFAULT 6 CHECK (notice_button_radius BETWEEN 0 AND 100);
+ALTER TABLE tasks ALTER COLUMN notice_label DROP DEFAULT;
+ALTER TABLE tasks ALTER COLUMN notice_intro_html DROP DEFAULT;
+ALTER TABLE tasks ALTER COLUMN notice_intro_height DROP DEFAULT;
+ALTER TABLE tasks ALTER COLUMN notice_button_text DROP DEFAULT;
+ALTER TABLE tasks ALTER COLUMN notice_button_color DROP DEFAULT;
+ALTER TABLE tasks ALTER COLUMN notice_button_text_color DROP DEFAULT;
+ALTER TABLE tasks ALTER COLUMN notice_button_radius DROP DEFAULT;
+COMMIT;

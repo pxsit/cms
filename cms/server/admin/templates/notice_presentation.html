@@ -1,0 +1,49 @@
+<tr><td colspan="2"><h2>Notice presentation</h2></td></tr>
+<tr>
+  <td>Section / menu label</td>
+  <td><input type="text" name="notice_label" maxlength="120" value="{{ task.notice_label }}">
+    <p>Replaces “Statement” for this notice. Leave blank to hide the section heading; the menu will say “Open”.</p>
+  </td>
+</tr>
+<tr>
+  <td>HTML before the PDF button</td>
+  <td>
+    <textarea id="notice_intro_html" name="notice_intro_html" rows="14" style="width:95%;font-family:monospace" maxlength="200000">{{ task.notice_intro_html }}</textarea>
+    <p>HTML and CSS are supported in a separate sandboxed block. JavaScript, forms, and access to the contest page are disabled.
+       Add your own fonts, spacing, headings, and colors with a &lt;style&gt; block.</p>
+    <details><summary>Example: a quiet, playful introduction</summary><pre>&lt;style&gt;
+body { margin: 0; padding: 24px; background: #faf6f2;
+       color: #59494b; font: 18px/1.7 Georgia, serif; }
+h2 { font-size: 25px; font-weight: normal; }
+&lt;/style&gt;
+&lt;h2&gt;A pleasantly unexpected error&lt;/h2&gt;
+&lt;p&gt;Everything is working. This little exception was intentional.&lt;/p&gt;</pre></details>
+  </td>
+</tr>
+<tr><td>Introduction height (pixels)</td><td><input id="notice_intro_height" type="number" name="notice_intro_height" min="80" max="2000" value="{{ task.notice_intro_height }}"></td></tr>
+<tr><td>PDF button text</td><td><input id="notice_button_text" type="text" name="notice_button_text" maxlength="120" required value="{{ task.notice_button_text }}"></td></tr>
+<tr><td>Button background</td><td><input id="notice_button_color" type="color" name="notice_button_color" value="{{ task.notice_button_color }}"></td></tr>
+<tr><td>Button text color</td><td><input id="notice_button_text_color" type="color" name="notice_button_text_color" value="{{ task.notice_button_text_color }}"></td></tr>
+<tr><td>Button corner radius (pixels)</td><td><input id="notice_button_radius" type="number" name="notice_button_radius" min="0" max="100" value="{{ task.notice_button_radius }}"></td></tr>
+<tr><td>Live preview</td><td>
+  <iframe id="notice_intro_preview" title="Notice HTML preview" sandbox="" referrerpolicy="no-referrer" style="width:100%;border:1px solid #ddd"></iframe>
+  <button id="notice_button_preview" type="button" class="btn btn-large" style="margin-top:20px">{{ task.notice_button_text }}</button>
+  <p>The preview button does not download a file. Upload the actual PDF using Statements below.</p>
+</td></tr>
+<script>
+$(function () {
+  function previewNotice() {
+    var frame = document.getElementById('notice_intro_preview');
+    frame.srcdoc = document.getElementById('notice_intro_html').value;
+    frame.style.height = document.getElementById('notice_intro_height').value + 'px';
+    $('#notice_button_preview').text($('#notice_button_text').val()).css({
+      background: $('#notice_button_color').val(),
+      color: $('#notice_button_text_color').val(),
+      borderColor: $('#notice_button_color').val(),
+      borderRadius: $('#notice_button_radius').val() + 'px', textShadow: 'none'
+    });
+  }
+  $('[id^="notice_"]').on('input change', previewNotice);
+  previewNotice();
+});
+</script>

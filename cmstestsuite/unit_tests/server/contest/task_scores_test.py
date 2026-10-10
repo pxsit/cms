@@ -26,7 +26,7 @@ def make_handler(phase=0, public_max=20, tokened=False, official=True):
     task = NS(
         id=1, name="task1", title="Task one", score_mode="max", score_precision=2,
         token_mode=TOKEN_MODE_DISABLED, submission_format=[],
-        is_notice=False, is_visible_to=lambda participation: True,
+        is_notice=False, is_visible_to=lambda participation: True, notice_label="Statement",
         get_allowed_languages=lambda: [],
         active_dataset=NS(score_type_object=score_type, time_limit=1,
                           memory_limit=1024, task_type_object=NS(name="Batch")))

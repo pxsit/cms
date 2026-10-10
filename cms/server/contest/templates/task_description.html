@@ -16,12 +16,18 @@
 
 
 <div class="page-header">
+    {% if task.is_notice %}
+    <h1>{{ task.title }}</h1>
+    {% else %}
     <h1>{% trans name=task.title, short_name=task.name %}{{ name }} ({{ short_name }}) <small>description</small>{% endtrans %}
-        {% if task.is_notice %}<span class="label">{% trans %}Notice{% endtrans %}</span>{% endif %}
     </h1>
+    {% endif %}
 </div>
 
 
+{% if task.is_notice %}
+{% include "notice_content.html" %}
+{% else %}
 <h2>{% trans %}Statement{% endtrans %}</h2>
 
 {% if task.statements|length == 0 %}
@@ -90,6 +96,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endif %}
 
 

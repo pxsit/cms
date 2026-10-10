@@ -8,6 +8,20 @@ from cmstestsuite.unit_tests.databasemixin import DatabaseMixin
 
 
 class TestTaskAudience(DatabaseMixin, unittest.TestCase):
+    def test_notice_presentation_persists(self):
+        task = self.add_task(is_notice=True, notice_intro_html="<h2>Hello</h2>",
+                             notice_label="For you", notice_button_text="Read this",
+                             notice_button_color="#123456", notice_intro_height=320,
+                             notice_button_radius=12)
+        self.session.flush()
+        self.session.expire_all()
+        self.assertEqual(task.notice_intro_html, "<h2>Hello</h2>")
+        self.assertEqual(task.notice_label, "For you")
+        self.assertEqual(task.notice_button_text, "Read this")
+        self.assertEqual(task.notice_button_color, "#123456")
+        self.assertEqual(task.notice_intro_height, 320)
+        self.assertEqual(task.notice_button_radius, 12)
+
     def test_membership_survives_rename_and_visibility_changes(self):
         participant = self.add_participation()
         task = self.add_task(contest=participant.contest, restricted=True,

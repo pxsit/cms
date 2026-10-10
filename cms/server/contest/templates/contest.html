@@ -184,7 +184,6 @@ $(document).ready(function () {
         {% for t_iter in visible_tasks %}
                             <li class="nav-header" data-task-name="{{ t_iter.name }}">
                                 <span>{{ t_iter.name }}</span>
-                                {% if t_iter.is_notice %}<span class="label">{% trans %}Notice{% endtrans %}</span>{% endif %}
             {% if contest.show_task_scores_in_sidebar and not t_iter.is_notice %}
                 {% if sidebar_task_scores is defined and t_iter.id in sidebar_task_scores %}
                                 <span class="task_score_badge task_score {{ get_score_class(sidebar_task_scores[t_iter.id][0], sidebar_task_scores[t_iter.id][1]) }}">
@@ -196,7 +195,7 @@ $(document).ready(function () {
             {% endif %}
                             </li>
                             <li{% if page == "task_description" and task == t_iter %} class="active"{% endif %}>
-                                <a href="{{ contest_url("tasks", t_iter.name, "description") }}">{% trans %}Statement{% endtrans %}</a>
+                                <a href="{{ contest_url("tasks", t_iter.name, "description") }}">{% if t_iter.is_notice %}{{ t_iter.notice_label or _("Open") }}{% else %}{% trans %}Statement{% endtrans %}{% endif %}</a>
                             </li>
             {% if not t_iter.is_notice %}
                             <li{% if page == "task_submissions" and task == t_iter %} class="active"{% endif %}>

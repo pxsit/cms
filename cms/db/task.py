@@ -294,6 +294,16 @@ class Task(Base):
     restricted: bool = Column(Boolean, nullable=False, default=False)
     allowed_users: list[User] = relationship(User, secondary=task_allowed_users)
 
+    notice_label: str = Column(Unicode, nullable=False, default="Statement")
+    notice_intro_html: str = Column(Unicode, nullable=False, default="")
+    notice_intro_height: int = Column(Integer, CheckConstraint(
+        "notice_intro_height BETWEEN 80 AND 2000"), nullable=False, default=240)
+    notice_button_text: str = Column(Unicode, nullable=False, default="Download PDF")
+    notice_button_color: str = Column(String, nullable=False, default="#8b5963")
+    notice_button_text_color: str = Column(String, nullable=False, default="#ffffff")
+    notice_button_radius: int = Column(Integer, CheckConstraint(
+        "notice_button_radius BETWEEN 0 AND 100"), nullable=False, default=6)
+
     def is_visible_to(self, participation) -> bool:
         """An empty restricted audience grants access to no contestants."""
         return participation is not None and (

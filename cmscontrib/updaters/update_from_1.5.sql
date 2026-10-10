@@ -150,4 +150,20 @@ CREATE TABLE public.task_allowed_users (
     PRIMARY KEY (task_id, user_id)
 );
 
+-- Per-notice HTML introduction and PDF button presentation (version 52).
+ALTER TABLE public.tasks ADD COLUMN notice_label varchar NOT NULL DEFAULT 'Statement';
+ALTER TABLE public.tasks ADD COLUMN notice_intro_html varchar NOT NULL DEFAULT '';
+ALTER TABLE public.tasks ADD COLUMN notice_intro_height integer NOT NULL DEFAULT 240 CHECK (notice_intro_height BETWEEN 80 AND 2000);
+ALTER TABLE public.tasks ADD COLUMN notice_button_text varchar NOT NULL DEFAULT 'Download PDF';
+ALTER TABLE public.tasks ADD COLUMN notice_button_color varchar NOT NULL DEFAULT '#8b5963';
+ALTER TABLE public.tasks ADD COLUMN notice_button_text_color varchar NOT NULL DEFAULT '#ffffff';
+ALTER TABLE public.tasks ADD COLUMN notice_button_radius integer NOT NULL DEFAULT 6 CHECK (notice_button_radius BETWEEN 0 AND 100);
+ALTER TABLE public.tasks ALTER COLUMN notice_label DROP DEFAULT;
+ALTER TABLE public.tasks ALTER COLUMN notice_intro_html DROP DEFAULT;
+ALTER TABLE public.tasks ALTER COLUMN notice_intro_height DROP DEFAULT;
+ALTER TABLE public.tasks ALTER COLUMN notice_button_text DROP DEFAULT;
+ALTER TABLE public.tasks ALTER COLUMN notice_button_color DROP DEFAULT;
+ALTER TABLE public.tasks ALTER COLUMN notice_button_text_color DROP DEFAULT;
+ALTER TABLE public.tasks ALTER COLUMN notice_button_radius DROP DEFAULT;
+
 COMMIT;

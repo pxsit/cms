@@ -47,6 +47,7 @@ $("select[name=task_type_{{ dataset.id }}]").change(function() {
   <div id="task_configuration">
     <table>
       <tr><td colspan=2><h2>Task information</h2></td></tr>
+      {% if task.is_notice %}{% include "notice_presentation.html" %}{% endif %}
       <tr>
         <td>Mode (permanent)</td>
         <td>{{ "Notice" if task.is_notice else "Normal task" }}
