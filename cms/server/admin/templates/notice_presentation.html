@@ -26,7 +26,7 @@ h2 { font-size: 25px; font-weight: normal; }
 <tr><td>Button text color</td><td><input id="notice_button_text_color" type="color" name="notice_button_text_color" value="{{ task.notice_button_text_color }}"></td></tr>
 <tr><td>Button corner radius (pixels)</td><td><input id="notice_button_radius" type="number" name="notice_button_radius" min="0" max="100" value="{{ task.notice_button_radius }}"></td></tr>
 <tr><td>Live preview</td><td>
-  <iframe id="notice_intro_preview" title="Notice HTML preview" sandbox="" referrerpolicy="no-referrer" style="width:100%;border:1px solid #ddd"></iframe>
+  <iframe id="notice_intro_preview" title="Notice HTML preview" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer" style="width:100%;border:1px solid #ddd"></iframe>
   <button id="notice_button_preview" type="button" class="btn btn-large" style="margin-top:20px">{{ task.notice_button_text }}</button>
   <p>The preview button does not download a file. Upload the actual PDF using Statements below.</p>
 </td></tr>
