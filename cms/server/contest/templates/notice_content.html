@@ -1,7 +1,7 @@
 {% if task.notice_label %}<h2>{{ task.notice_label }}</h2>{% endif %}
 {% if task.notice_intro_html %}
 <iframe class="notice-introduction" title="{{ task.notice_label or task.title }}"
-        sandbox="" referrerpolicy="no-referrer"
+        sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer"
         style="display:block;width:100%;height:{{ task.notice_intro_height }}px;border:0;margin-bottom:20px"
         srcdoc="{{ task.notice_intro_html }}"></iframe>
 {% endif %}
