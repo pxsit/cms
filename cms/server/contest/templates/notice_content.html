@@ -12,7 +12,5 @@
        style="background:{{ task.notice_button_color }};color:{{ task.notice_button_text_color }};border-color:{{ task.notice_button_color }};border-radius:{{ task.notice_button_radius }}px;text-shadow:none;margin:0 8px 12px 0">
         {{ task.notice_button_text }}{% if task.statements|length > 1 %} ({{ statement.language|format_locale }}){% endif %}
     </a>
-{% else %}
-    <p>{% trans %}No PDF available yet.{% endtrans %}</p>
 {% endfor %}
 </div>
