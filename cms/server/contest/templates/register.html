@@ -28,6 +28,9 @@ $(document).ready(function() {
     const passwordHelp = $("#password-input span.help-block").text();
 
     $("#register-pill").click(function(e) {
+        e.preventDefault();
+        $("#join-pill a").removeClass("active");
+        $("#register-pill a").addClass("active");
         clearErrors();
         $("#password-input span.help-block").text(passwordHelp);
         $('input[name=new_user]').val(true);
@@ -41,6 +44,9 @@ $(document).ready(function() {
     });
 
     $("#join-pill").click(function(e) {
+        e.preventDefault();
+        $("#register-pill a").removeClass("active");
+        $("#join-pill a").addClass("active");
         clearErrors();
         $('input[name=new_user]').val(false);
         registerFields.forEach((fieldName) => {
@@ -112,10 +118,10 @@ $(document).ready(function() {
         <h1>{% trans %}Registration{% endtrans %}</h1>
         <p>{% trans %}Please fill in the fields to register{% endtrans %}</p>
         <ul class="nav nav-pills">
-            <li class="active" id="register-pill"><a href="#" data-toggle="tab">{% trans %}New user{% endtrans %}</a></li>
-            <li id="join-pill"><a href="#" data-toggle="tab">{% trans %}Join contest{% endtrans %}</a></li>
+            <li class="nav-item" id="register-pill"><a class="nav-link active" href="#">{% trans %}New user{% endtrans %}</a></li>
+            <li class="nav-item" id="join-pill"><a class="nav-link" href="#">{% trans %}Join contest{% endtrans %}</a></li>
         </ul>
-        <form id="signup" class="form-horizontal" action="{{ contest_url('register') }}">
+        <form id="signup" action="{{ contest_url('register') }}">
             {{ xsrf_form_html|safe }}
             {% set next_page = handler.get_argument("next", none) %}
             {% if next_page is not none %}

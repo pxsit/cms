@@ -5,7 +5,7 @@
 {% block body %}
     <div class="hero-unit contest-list">
         <h3>{% trans %}Choose a contest{% endtrans %}</h3>
-        <ul class="nav nav-list">
+        <ul class="nav-list">
     {% for c_name, c_iter in contest_list|dictsort(by="key") %}
             <li>
                 <a {% if c_iter.main_group.stop < now %} style="color: #adadad" {% endif %} href="{{ url(c_iter.name) }}">{{ c_iter.description }}</a>

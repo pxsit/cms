@@ -93,11 +93,11 @@ CMS.CWSUtils.prototype.display_notification = function(type, timestamp,
                                                        level, hush) {
     // TODO somehow display timestamp, subject and text
 
-    var alert = $('<div class="alert alert-block notification">' +
-                  '<button type="button" class="close" data-dismiss="alert">×</button>' +
+    var alert = $('<div class="alert alert-warning alert-dismissible notification">' +
+                  '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
                   '<h4 class="alert-heading"></h4>' +
                   '</div>');
-    alert.children("button.close").attr(
+    alert.children("button.btn-close").attr(
         "aria-label", $("#translation_close").text().trim());
 
     if (type == "message") {
@@ -113,9 +113,9 @@ CMS.CWSUtils.prototype.display_notification = function(type, timestamp,
 
     // The "warning" level is the default, so no check needed.
     if (level == "error") {
-        alert.addClass("alert-error");
+        alert.removeClass("alert-warning").addClass("alert-danger");
     } else if (level == "success") {
-        alert.addClass("alert-success");
+        alert.removeClass("alert-warning").addClass("alert-success");
     }
 
     $("#notifications").prepend(alert);

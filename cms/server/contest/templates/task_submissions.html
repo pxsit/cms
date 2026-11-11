@@ -38,7 +38,7 @@ var TASK_LANGUAGES = {
 $(document).on("click", ".submission_list tbody tr td.status .details", function (event) {
     var submission_id = $(this).parent().parent().attr("data-submission");
     var modal = $("#submission_detail");
-    var modal_body = modal.children(".modal-body");
+    var modal_body = modal.find(".modal-body");
     modal_body.html('<div class="loading"><img src="{{ static_url("static", "loading.gif") }}"/>{% trans %}loading...{% endtrans %}</div>');
     modal_body.load(utils.contest_url("tasks", "{{ task.name }}", "submissions", submission_id, "details"), function(response, status, xhr) {
         if(status != "success") {
@@ -46,14 +46,14 @@ $(document).on("click", ".submission_list tbody tr td.status .details", function
             return;
         }
         $(".score_details .subtask .subtask-head").each(function () {
-            $(this).prepend("<i class=\"icon-chevron-right\"></i>");
+            $(this).prepend("<i class=\"chevron-right\"></i>");
         });
         $(".score_details .subtask .subtask-head").click(function () {
             $(this).parent().toggleClass("open");
             if ($(this).parent().hasClass("open")) {
-                $(this).children("i").removeClass("icon-chevron-right").addClass("icon-chevron-down");
+                $(this).children("i").removeClass("chevron-right").addClass("chevron-down");
             } else {
-                $(this).children("i").removeClass("icon-chevron-down").addClass("icon-chevron-right");
+                $(this).children("i").removeClass("chevron-down").addClass("chevron-right");
             }
         });
         $(".score_details table.testcase-list").addClass("table table-bordered table-striped");
@@ -61,7 +61,7 @@ $(document).on("click", ".submission_list tbody tr td.status .details", function
             $(this).html("<span class=\"outcome\">" + $(this).text() + "</span>");
         });
     });
-    modal.modal("show");
+    bootstrap.Modal.getOrCreateInstance(modal[0]).show();
 });
 
 function is_status_terminal (status) {
@@ -193,7 +193,7 @@ $(document).ready(function () {
     {% if score_type.max_public_score > 0 %}
         {# Show the public score (alone, if everything is public or tokens are disabled, or together with the tokened score). #}
     <div id="task_score_public"
-         class="{{ "span6" if two_task_scores else "span12" }} well well-small task_score {{ get_score_class(public_score, score_type.max_public_score) }}">
+         class="{{"span6" if two_task_scores else "span12" }} well well-small task_score {{ get_score_class(public_score, score_type.max_public_score) }}">
         <span>
         {% if score_type.max_public_score == score_type.max_score %}
             {% trans %}Score:{% endtrans %}
@@ -214,7 +214,7 @@ $(document).ready(function () {
     {% if score_type.max_public_score < score_type.max_score %}
         {# Show the tokened score (alone if everything is non-public, or together with the public score). #}
     <div id="task_score_tokened"
-         class="{{ "span6" if two_task_scores else "span12" }}  well well-small task_score {{ get_score_class(tokened_score, score_type.max_score) if can_use_tokens else "undefined" }}">
+         class="{{"span6" if two_task_scores else "span12" }}  well well-small task_score {{ get_score_class(tokened_score, score_type.max_score) if can_use_tokens else "undefined" }}">
         <span>
         {% if can_use_tokens %}
             {% trans %}Score of tokened submissions:{% endtrans %}
@@ -258,7 +258,7 @@ $(document).ready(function () {
 
 <div id="submit_solution" class="row">
     <div class="span5">
-        <form class="form-horizontal" enctype="multipart/form-data" action="{{ contest_url("tasks", task.name, "submit") }}" method="POST">
+        <form enctype="multipart/form-data" action="{{ contest_url("tasks", task.name, "submit") }}" method="POST">
             {{ xsrf_form_html|safe }}
             <fieldset>
   {% for filename in task.submission_format %}
@@ -294,7 +294,7 @@ $(document).ready(function () {
     </div>
   {% if task.submission_format|length > 1 and not task.submission_format|any("endswith", ".%l") %}
     <div class="span4">
-        <form class="form-horizontal" enctype="multipart/form-data" action="{{ contest_url("tasks", task.name, "submit") }}" method="POST">
+        <form enctype="multipart/form-data" action="{{ contest_url("tasks", task.name, "submit") }}" method="POST">
             {{ xsrf_form_html|safe }}
             <fieldset>
                 <div class="control-group">
@@ -398,15 +398,19 @@ $(document).ready(function () {
     submissions_download_allowed,
     true) }}
 
-<div class="modal fade hide wide" id="submission_detail">
-    <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-label="{% trans %}Close{% endtrans %}">&#xD7;</button>
-        <h3>{% trans %}Submission details{% endtrans %}</h3>
-    </div>
-    <div class="modal-body">
-    </div>
-    <div class="modal-footer">
-        <a href="#" class="btn" data-dismiss="modal">{% trans %}Close{% endtrans %}</a>
+<div class="modal fade wide" id="submission_detail" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">{% trans %}Submission details{% endtrans %}</h3>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans %}Close{% endtrans %}"></button>
+            </div>
+            <div class="modal-body">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" data-bs-dismiss="modal">{% trans %}Close{% endtrans %}</button>
+            </div>
+        </div>
     </div>
 </div>
 

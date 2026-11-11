@@ -38,11 +38,11 @@ def test_tabs_switch_between_tasks(testing):
     expect(sum_pane).to_be_visible()
     expect(pair_pane).to_be_hidden()
 
-    testing.get_by_role("link", name=seed.PAIR_TASK_NAME, exact=True).click()
+    testing.get_by_role("tab", name=seed.PAIR_TASK_NAME, exact=True).click()
     expect(pair_pane).to_be_visible()
     expect(sum_pane).to_be_hidden()
 
-    testing.get_by_role("link", name=seed.TASK_NAME, exact=True).click()
+    testing.get_by_role("tab", name=seed.TASK_NAME, exact=True).click()
     expect(sum_pane).to_be_visible()
     expect(pair_pane).to_be_hidden()
 
@@ -76,7 +76,7 @@ def test_test_details_close_with_the_x(testing):
 
 
 def test_multi_file_test_has_a_download_menu(testing):
-    testing.get_by_role("link", name=seed.PAIR_TASK_NAME, exact=True).click()
+    testing.get_by_role("tab", name=seed.PAIR_TASK_NAME, exact=True).click()
     pane = testing.locator("#test_%s" % seed.PAIR_TASK_NAME)
     first, second = seed.PAIR_FILES
     item = pane.get_by_role("link", name=first)
