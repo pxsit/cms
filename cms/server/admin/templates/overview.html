@@ -111,7 +111,7 @@ function update_workers_status(response)
     for (var i in response['data'])
     {
         var job = "";
-        if ($.isArray(response['data'][i]['operations'])) {
+        if (Array.isArray(response['data'][i]['operations'])) {
             job = utils.repr_job(response['data'][i]['operations'][0]);
             if (response['data'][i]['operations'].length > 1) {
                 job += ' and ' + (response['data'][i]['operations'].length - 1) + ' more';

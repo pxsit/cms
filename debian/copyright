@@ -35,8 +35,7 @@ Copyright: 2008-2016 Dmitry Baranovskiy (http://raphaeljs.com)
 License: Expat and Apache-2.0
 Comment: See https://dmitrybaranovskiy.github.io/raphael/license.html
 
-Files: cms/server/static/jq/jquery-3.6.0.min.js
-       cms/server/static/jq/jquery-migrate-3.3.2.min.js
+Files: cms/server/static/jq/jquery-4.0.0.min.js
 Copyright: 2021 OpenJS Foundation and other contributors, http://jquery.org/
 License: Expat
 
