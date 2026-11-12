@@ -64,7 +64,8 @@ devel = [
     # "Sphinx>=1.8,<1.9",
 ]
 
-# Only for the browser tests in cmstestsuite/browser_tests.
+# Only for the browser tests in cmstestsuite/browser_tests. The versions
+# used in CI are pinned in constraints-browser-test.txt; install from there.
 browser-test = [
     "pytest-playwright>=0.5,<1",
 ]

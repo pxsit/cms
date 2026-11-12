@@ -83,16 +83,27 @@ WORKDIR /home/cmsuser/src
 RUN --mount=type=cache,target=/home/cmsuser/.cache/pip,uid=2000 ./install.py venv
 ENV PATH="/home/cmsuser/cms/bin:$PATH"
 
+# Browser tests (cmstestsuite/browser_tests): only in images built with
+# BROWSER_TESTS=1, as Chromium and its libraries are large. This only needs
+# the pinned versions, so it comes before the sources are copied and stays
+# cached when they change.
+COPY --chown=cmsuser:cmsuser constraints-browser-test.txt /home/cmsuser/src/
+ARG BROWSER_TESTS=0
+ENV PLAYWRIGHT_BROWSERS_PATH=/home/cmsuser/ms-playwright
+RUN --mount=type=cache,target=/home/cmsuser/.cache/pip,uid=2000 \
+    --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked <<'EOF'
+#!/bin/bash -ex
+    if [ "$BROWSER_TESTS" = 1 ]; then
+        pip install -c constraints.txt -r constraints-browser-test.txt
+        sudo "$(which playwright)" install-deps chromium
+        playwright install chromium
+    fi
+EOF
+
 COPY --chown=cmsuser:cmsuser . /home/cmsuser/src
 
 RUN --mount=type=cache,target=/home/cmsuser/.cache/pip,uid=2000 ./install.py cms --devel
-
-# Browser tests (cmstestsuite/browser_tests)
-ENV PLAYWRIGHT_BROWSERS_PATH=/home/cmsuser/ms-playwright
-RUN --mount=type=cache,target=/home/cmsuser/.cache/pip,uid=2000 \
-    pip install -c constraints.txt ".[browser-test]" \
-    && sudo "$(which playwright)" install-deps chromium \
-    && playwright install chromium
 
 RUN <<EOF
 #!/bin/bash -ex

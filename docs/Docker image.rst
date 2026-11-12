@@ -110,7 +110,9 @@ or, with the full command:
     docker compose -p someprojectname -f docker/docker-compose.test.yml run --build --rm browsertestcms
 
 The same notes about ``-p``, ``sudo`` and cleaning up the database container
-apply as above.
+apply as above. Only the ``browsertestcms`` image contains Chromium: it is
+built with the ``BROWSER_TESTS=1`` build argument, which the other services
+leave unset.
 
 The tests recreate the test database, fill it with a small contest (a few users,
 two tasks, already evaluated submissions, an announcement, and so on), start a
@@ -127,7 +129,7 @@ delete its content), and run pytest on the directory:
 
 .. sourcecode:: bash
 
-    pip install ".[browser-test]"
+    pip install -c constraints.txt -r constraints-browser-test.txt
     playwright install chromium
     pytest cmstestsuite/browser_tests
 
