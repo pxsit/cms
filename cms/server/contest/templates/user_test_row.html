@@ -75,10 +75,9 @@
         </a>
         {% else %}
         <div class="btn-group">
-            <a class="btn dropdown-toggle" data-toggle="dropdown">
+            <button type="button" class="btn dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                 {% trans %}Download{% endtrans %}
-                <span class="caret"></span>
-            </a>
+            </button>
             <ul class="dropdown-menu">
             {% for filename in files %}
                 {% if t.language is not none %}
@@ -87,7 +86,7 @@
                     {% set real_filename = filename %}
                 {% endif %}
                 <li>
-                    <a href="{{ contest_url("tasks", task.name, "tests", t_idx, "files", real_filename) }}">
+                    <a class="dropdown-item" href="{{ contest_url("tasks", task.name, "tests", t_idx, "files", real_filename) }}">
                         {{ real_filename }}
                     </a>
                 </li>

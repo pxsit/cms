@@ -16,8 +16,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Browser tests for the registration form: both tabs, the validation
-messages and the confirmation."""
+"""Browser tests for the registration form: the validation messages and
+the confirmation. Switching between its two tabs is tested in
+bootstrap_js_test.py."""
 
 import pytest
 from playwright.sync_api import expect
@@ -32,28 +33,6 @@ def fill_new_user(page, username, password, confirm=None):
     page.locator("#password").fill(password)
     page.locator("#password-confirm").fill(
         password if confirm is None else confirm)
-
-
-def test_tabs_switch_between_new_user_and_join(page, base_url):
-    page.goto(base_url + "register")
-    # The new user tab is shown first, with the whole form.
-    expect(page.locator("#profile")).to_be_visible()
-    expect(page.locator("#first_name")).to_be_visible()
-    expect(page.locator("#password-confirm")).to_be_visible()
-
-    # Joining with an existing user hides the profile and the password
-    # confirmation.
-    page.locator("#join-pill").get_by_role("link").click()
-    expect(page.locator("#profile")).to_be_hidden()
-    expect(page.locator("#first_name")).to_be_hidden()
-    expect(page.locator("#password-confirm")).to_be_hidden()
-    expect(page.locator("#username")).to_be_visible()
-    expect(page.locator("#password")).to_be_visible()
-
-    page.locator("#register-pill").get_by_role("link").click()
-    expect(page.locator("#profile")).to_be_visible()
-    expect(page.locator("#first_name")).to_be_visible()
-    expect(page.locator("#password-confirm")).to_be_visible()
 
 
 def test_mismatching_passwords_show_an_error(page, base_url):

@@ -36,7 +36,7 @@ CMS.CWSUtils = function(url_root, contest_root, contest_name, timestamp, timezon
     }
     this.server_timestamp = timestamp;
     this.server_timezoned_timestamp = timezoned_timestamp;
-    this.client_timestamp = $.now() / 1000;
+    this.client_timestamp = Date.now() / 1000;
     this.current_phase_begin = current_phase_begin;
     this.current_phase_end = current_phase_end;
     this.phase = phase;
@@ -93,11 +93,11 @@ CMS.CWSUtils.prototype.display_notification = function(type, timestamp,
                                                        level, hush) {
     // TODO somehow display timestamp, subject and text
 
-    var alert = $('<div class="alert alert-block notification">' +
-                  '<button type="button" class="close" data-dismiss="alert">×</button>' +
+    var alert = $('<div class="alert alert-warning alert-dismissible notification">' +
+                  '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
                   '<h4 class="alert-heading"></h4>' +
                   '</div>');
-    alert.children("button.close").attr(
+    alert.children("button.btn-close").attr(
         "aria-label", $("#translation_close").text().trim());
 
     if (type == "message") {
@@ -113,9 +113,9 @@ CMS.CWSUtils.prototype.display_notification = function(type, timestamp,
 
     // The "warning" level is the default, so no check needed.
     if (level == "error") {
-        alert.addClass("alert-error");
+        alert.removeClass("alert-warning").addClass("alert-danger");
     } else if (level == "success") {
-        alert.addClass("alert-success");
+        alert.removeClass("alert-warning").addClass("alert-success");
     }
 
     $("#notifications").prepend(alert);
@@ -221,7 +221,7 @@ CMS.CWSUtils.prototype.format_timedelta = function(timedelta) {
 
 
 CMS.CWSUtils.prototype.update_time = function(usaco_like_contest, timer = -1) {
-    var now = $.now() / 1000;
+    var now = Date.now() / 1000;
 
     // FIXME This may cause some problems around DST boundaries, as it
     // is not adjusted because we consider it to be in UTC timezone.

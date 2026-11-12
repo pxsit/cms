@@ -23,14 +23,14 @@ $(document).on("click", ".user_test_list tbody tr td.status .details", function 
     var task_id = $this.parent().parent().parent().parent().attr("data-task");
     var user_test_id = $this.parent().parent().attr("data-user-test");
     var modal = $("#user_test_detail");
-    var modal_body = modal.children(".modal-body");
+    var modal_body = modal.find(".modal-body");
     modal_body.html('<div class="loading"><img src="{{ static_url("static", "loading.gif") }}"/>{% trans %}loading...{% endtrans %}</div>');
     modal_body.load(utils.contest_url("tasks", task_id, "tests", user_test_id, "details"), function(response, status, xhr) {
         if(status != "success") {
             $(this).html("{% trans %}Error loading details, please refresh the page.{% endtrans %}");
         }
     });
-    modal.modal("show");
+    bootstrap.Modal.getOrCreateInstance(modal[0]).show();
 });
 
 update_user_test_row = function (task_id, user_test_id, data) {
@@ -91,7 +91,7 @@ $(document).ready(function () {
 {% for task in contest.tasks %}
     {% set task_type = get_task_type(dataset=task.active_dataset) %}
     {% if task_type.testable %}
-    <li{% if task == default_task %} class="active"{% endif %}><a href="#test_{{ task.name }}" data-toggle="tab">{{ task.name }}</a></li>
+    <li class="nav-item"><a class="nav-link{% if task == default_task %} active{% endif %}" href="#test_{{ task.name }}" data-bs-toggle="tab">{{ task.name }}</a></li>
     {% endif %}
 {% endfor %}
 </ul>
@@ -114,7 +114,7 @@ $(document).ready(function () {
 
 <div class="submit_test row">
     <div class="span5">
-        <form class="form-horizontal" enctype="multipart/form-data" action="{{ contest_url("tasks", task.name, "test") }}" method="POST">
+        <form enctype="multipart/form-data" action="{{ contest_url("tasks", task.name, "test") }}" method="POST">
             {{ xsrf_form_html|safe }}
             <fieldset>
 {% for filename in task.submission_format + task_type.get_user_managers() %}
@@ -156,7 +156,7 @@ $(document).ready(function () {
     </div>
 {% if not (task.submission_format + task_type.get_user_managers())|any("endswith", ".%l") %}
     <div class="span4">
-        <form class="form-horizontal" enctype="multipart/form-data" action="{{ contest_url("tasks", task.name, "test") }}" method="POST">
+        <form enctype="multipart/form-data" action="{{ contest_url("tasks", task.name, "test") }}" method="POST">
             {{ xsrf_form_html|safe }}
             <fieldset>
                 <div class="control-group">
@@ -234,15 +234,19 @@ $(document).ready(function () {
 {% endfor %}
 </div>
 
-<div class="modal fade hide" id="user_test_detail">
-    <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-label="{% trans %}Close{% endtrans %}">&#xD7;</button>
-        <h3>{% trans %}Test details{% endtrans %}</h3>
-    </div>
-    <div class="modal-body">
-    </div>
-    <div class="modal-footer">
-        <a href="#" class="btn" data-dismiss="modal">{% trans %}Close{% endtrans %}</a>
+<div class="modal fade" id="user_test_detail" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">{% trans %}Test details{% endtrans %}</h3>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans %}Close{% endtrans %}"></button>
+            </div>
+            <div class="modal-body">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" data-bs-dismiss="modal">{% trans %}Close{% endtrans %}</button>
+            </div>
+        </div>
     </div>
 </div>
 

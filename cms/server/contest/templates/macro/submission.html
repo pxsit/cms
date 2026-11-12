@@ -208,10 +208,9 @@ submissions_download_allowed (bool): whether to allow users to download
         </a>
         {% else %}
         <div class="btn-group">
-            <a class="btn dropdown-toggle" data-toggle="dropdown">
+            <button type="button" class="btn dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                 {% trans %}Download{% endtrans %}
-                <span class="caret"></span>
-            </a>
+            </button>
             <ul class="dropdown-menu">
             {% for filename in s.files %}
                 {% if s.language is not none %}
@@ -221,7 +220,7 @@ submissions_download_allowed (bool): whether to allow users to download
                     {% endif %}
                 {% endif %}
                 <li>
-                    <a href="{{ contest_url("tasks", task.name, "submissions", opaque_id, "files", filename) }}">
+                    <a class="dropdown-item" href="{{ contest_url("tasks", task.name, "submissions", opaque_id, "files", filename) }}">
                         {{ filename }}
                     </a>
                 </li>

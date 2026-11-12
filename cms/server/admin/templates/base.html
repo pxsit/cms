@@ -7,10 +7,11 @@
     <link rel="stylesheet" type="text/css" href="{{ static_url("static", "aws_style.css") }}">
     <script src="{{ static_url("static", "web_rpc.js") }}"></script>
     <script src="{{ static_url("static", "aws_utils.js") }}"></script>
-    <script src="{{ static_url("static", "jq", "jquery-3.6.0.min.js") }}"></script>
+    <script src="{{ static_url("static", "jq", "jquery-4.0.0.min.js") }}"></script>
     <script src="{{ static_url("static", "jq", "jquery.jqplot.min.js") }}"></script>
     <script src="{{ static_url("static", "jq", "jqplot.dateAxisRenderer.min.js") }}"></script>
     <script src="{{ static_url("static", "jq", "jqplot.enhancedLegendRenderer.min.js") }}"></script>
+    <script src="{{ static_url("static", "jq", "jqplot-jquery4-compat.js") }}"></script>
     <link rel="stylesheet" type="text/css" href="{{ static_url("static", "jq", "jquery.jqplot.min.css") }}"/>
     <link rel="stylesheet" type="text/css" href="{{ static_url("static", "prism.css") }}">
     <script src="{{ static_url("static", "prism.js") }}" data-manual></script>
@@ -43,10 +44,10 @@ function init()
 
     $(document).click(utils.hide_subpage);
 
-    // delegate() ensures that the event is fired even for elements
+    // on() with a selector ensures that the event is fired even for elements
     // that are added in the future.
-    $(document).delegate('.toggling_on', 'click', utils.toggle_visibility);
-    $(document).delegate('.toggling_off', 'click', utils.toggle_visibility);
+    $(document).on('click', '.toggling_on', utils.toggle_visibility);
+    $(document).on('click', '.toggling_off', utils.toggle_visibility);
 
     $(".diff-radio").change(utils.update_diff_ids);
 

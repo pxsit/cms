@@ -35,8 +35,7 @@ Copyright: 2008-2016 Dmitry Baranovskiy (http://raphaeljs.com)
 License: Expat and Apache-2.0
 Comment: See https://dmitrybaranovskiy.github.io/raphael/license.html
 
-Files: cms/server/static/jq/jquery-3.6.0.min.js
-       cms/server/static/jq/jquery-migrate-3.3.2.min.js
+Files: cms/server/static/jq/jquery-4.0.0.min.js
 Copyright: 2021 OpenJS Foundation and other contributors, http://jquery.org/
 License: Expat
 
@@ -45,11 +44,10 @@ Files: cms/server/static/jq/jquery.jqplot*
 Copyright: 2009-2016 Chris Leonello
 License: Expat or GPL-2
 
-Files: cms/server/static/css/bootstrap.css
-       cms/server/static/js/bootstrap.js
-       cms/server/static/img/glyphicons-halflings*.png
-Copyright: 2012 Twitter, Inc.
-License: Apache-2.0
+Files: cms/server/contest/static/css/bootstrap.min.css
+       cms/server/contest/static/js/bootstrap.bundle.min.js
+Copyright: 2011-2025 The Bootstrap Authors
+License: Expat
 
 Files: cms/server/static/img/mimetypes/*.png
 Copyright: 2009 Tango Desktop Project, http://tango.freedesktop.org/

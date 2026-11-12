@@ -21,14 +21,15 @@ services:
     command: wait-for-it testdb:5432 -- docker/_cms-test-internal.sh
 
   browsertestcms:
-    build: ..
+    build:
+      context: ..
+      args:
+        BROWSER_TESTS: "1"
     depends_on:
       - "testdb"
     environment:
       CMS_CONFIG: /home/cmsuser/cms/etc/cms-testdb.toml
       PYTEST_ADDOPTS: --color=yes
-    privileged: true
-    cgroup: host
     command: wait-for-it testdb:5432 -- docker/_cms-browser-test-internal.sh
 
   stresstestcms:

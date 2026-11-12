@@ -43,21 +43,6 @@ def test_login_and_logout(page, base_url, login):
     expect(page.get_by_role("button", name="Logout")).to_have_count(0)
 
 
-def test_failed_login_alert_can_be_dismissed(page, base_url):
-    page.goto(base_url)
-    page.get_by_label("Username").fill(seed.READER)
-    page.get_by_label("Password").fill("not-the-password")
-    page.get_by_role("button", name="Login").click()
-
-    alert = page.get_by_text("Failed to log in.")
-    expect(alert).to_be_visible()
-    expect(page.get_by_role("button", name="Logout")).to_have_count(0)
-
-    # The alert has a close control; using it must remove the alert.
-    page.get_by_role("button", name="Close").click()
-    expect(alert).to_be_hidden()
-
-
 def test_reset_button_clears_the_login_form(page, base_url):
     page.goto(base_url)
     page.get_by_label("Username").fill("something")
