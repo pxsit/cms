@@ -320,10 +320,6 @@ def test_script_built_notification_can_be_dismissed(
     # Notifications of type "notification" are sent by the administrators
     # and show their own title and text; build one as the page would.
     login(seed.NOBODY)
-    # The page fetches the user's own notifications right after loading and
-    # puts them on top of any other alert, shifting it down. Let that
-    # finish first, or the click below can land on the wrong alert.
-    page.wait_for_load_state("networkidle")
     page.evaluate(
         "utils.display_notification('notification', 0, 'Heads up', "
         "'Something happened', %r, true)" % level)

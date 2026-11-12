@@ -42,10 +42,13 @@ ADMIN_PASSWORD = "browsertestadmin-password"
 @pytest.fixture(scope="session")
 def aws_url(seeded):
     """Start a real AWS on the seeded database and return its URL."""
-    subprocess.run(
+    added = subprocess.run(
         [os.path.join(sys.prefix, "bin", "cmsAddAdmin"), ADMIN,
          "-p", ADMIN_PASSWORD],
-        check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        capture_output=True, text=True)
+    if added.returncode != 0:
+        raise RuntimeError("cmsAddAdmin failed (%d): %s"
+                           % (added.returncode, added.stderr[-1000:]))
     port = cms_config.admin_web_server.listen_port
     url = "http://127.0.0.1:%d/" % port
     executable = os.path.join(sys.prefix, "bin", "cmsAdminWebServer")
@@ -82,22 +85,32 @@ def aws_url(seeded):
 
 # Most AWS pages talk to the other services (through RPC) to fill parts of
 # themselves, and these are not running here, so some requests fail with
-# server errors. These tests do not care about that: they check that the
-# pages load and that their JavaScript, which needs jQuery and jqPlot, runs
-# without uncaught exceptions.
-pytestmark = pytest.mark.allow_browser_errors
+# server errors that the browser logs as console errors. Ignore those, but
+# still fail on uncaught exceptions and on any static file that is missing
+# (a wrong script path would otherwise go unnoticed here).
+@pytest.fixture(autouse=True)
+def fail_on_browser_errors(page):
+    problems = []
+
+    def on_console(msg):
+        if msg.type == "error"                 and "Failed to load resource" not in msg.text:
+            problems.append("console error: %s" % msg.text)
+
+    def on_response(response):
+        if "/static/" in response.url and response.status >= 400:
+            problems.append("static asset %s returned %d"
+                            % (response.url, response.status))
+
+    page.on("console", on_console)
+    page.on("pageerror",
+            lambda exc: problems.append("uncaught exception: %s" % exc))
+    page.on("response", on_response)
+    yield
+    assert not problems, "\n".join(problems)
 
 
 @pytest.fixture
-def js_errors(page):
-    errors = []
-    page.on("pageerror", lambda exc: errors.append(str(exc)))
-    yield errors
-    assert not errors, "uncaught exceptions: %s" % errors
-
-
-@pytest.fixture
-def admin_page(page, aws_url, js_errors):
+def admin_page(page, aws_url):
     page.goto(aws_url + "login")
     page.get_by_label("Username").fill(ADMIN)
     page.get_by_label("Password").fill(ADMIN_PASSWORD)
@@ -110,13 +123,23 @@ def admin_page(page, aws_url, js_errors):
     return page
 
 
-@pytest.mark.parametrize("path", [
-    "", "contests", "contest/{c}", "contest/{c}/users", "tasks", "users",
-    "resources"])
-def test_pages_load(admin_page, aws_url, seeded, path):
+# (path, a heading that only a correctly rendered page has)
+PAGES = [
+    ("", "Administration"),
+    ("contests", "Administration"),
+    ("contest/{c}", "Contest configuration"),
+    ("contest/{c}/users", "Users list"),
+    ("tasks", "Administration"),
+    ("users", "Administration"),
+    ("resources", "Administration"),
+]
+
+
+@pytest.mark.parametrize("path,heading", PAGES)
+def test_pages_load(admin_page, aws_url, seeded, path, heading):
     admin_page.goto(aws_url + path.format(c=seeded.contest_id))
-    expect(admin_page.locator("#nav_sidebar, nav, .sidebar, body").first)         .to_be_visible()
-    # jQuery is there and working.
+    expect(admin_page.get_by_role("heading", name=heading).first)         .to_be_visible()
+    # jQuery 4 is the one that is loaded and it works.
     assert admin_page.evaluate("typeof $ === 'function' && $.fn.jquery")         .startswith("4.")
 
 

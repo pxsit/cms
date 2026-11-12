@@ -2,6 +2,14 @@
  * The look of CWS, as it was with Bootstrap 2.0.4, on top of Bootstrap 5.
  * Bootstrap 5 provides the behaviour (modals, dropdowns, tabs, alerts) and
  * the base layout; this section restores the Bootstrap 2 metrics and skin.
+ *
+ * Because of that, CWS templates use the Bootstrap 2 markup (container, row,
+ * spanN, row-fluid, btn-large, hero-unit, well, nav-list, ...) and these rules
+ * deliberately redefine .container, .row, [class*="span"], .btn, .btn-group,
+ * .table, .alert and the modal parts for the whole site. Do not use Bootstrap
+ * 5 grid or flex utilities (col-*, container-fluid, d-flex, ...) in CWS
+ * templates: they would be laid out by the Bootstrap 2 rules below. A unit
+ * test (templates_bootstrap_test.py) checks the common cases.
  */
 
 :root {
@@ -242,8 +250,15 @@ input, textarea {
 
 textarea { height: auto; }
 
-input[type="submit"], input[type="reset"], input[type="button"] {
+input[type="submit"], input[type="reset"], input[type="button"],
+input[type="radio"], input[type="checkbox"] {
     width: auto;
+}
+
+input[type="radio"], input[type="checkbox"] {
+    margin: 3px 0;
+    line-height: normal;
+    cursor: pointer;
 }
 
 select, input[type="file"] {
@@ -374,11 +389,26 @@ fieldset {
     text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
 }
 
-.btn-primary { --bs-btn-bg: #0074cc; --bs-btn-hover-bg: #0055cc; --bs-btn-active-bg: #004099; --bs-btn-disabled-bg: #0055cc; --bs-btn-border-color: #0055cc; --bs-btn-hover-border-color: #0055cc; --bs-btn-active-border-color: #0055cc; --bs-btn-disabled-border-color: #0055cc; background-image: linear-gradient(to bottom, #0088cc, #0055cc); border-bottom-color: #003580; }
-.btn-info { --bs-btn-bg: #49afcd; --bs-btn-hover-bg: #2f96b4; --bs-btn-active-bg: #24748c; --bs-btn-disabled-bg: #2f96b4; --bs-btn-border-color: #2f96b4; --bs-btn-hover-border-color: #2f96b4; --bs-btn-active-border-color: #2f96b4; --bs-btn-disabled-border-color: #2f96b4; background-image: linear-gradient(to bottom, #5bc0de, #2f96b4); border-bottom-color: #1f6377; }
-.btn-success { --bs-btn-bg: #5bb75b; --bs-btn-hover-bg: #51a351; --bs-btn-active-bg: #408140; --bs-btn-disabled-bg: #51a351; --bs-btn-border-color: #51a351; --bs-btn-hover-border-color: #51a351; --bs-btn-active-border-color: #51a351; --bs-btn-disabled-border-color: #51a351; background-image: linear-gradient(to bottom, #62c462, #51a351); border-bottom-color: #387038; }
-.btn-warning { --bs-btn-bg: #faa732; --bs-btn-hover-bg: #f89406; --bs-btn-active-bg: #c67605; --bs-btn-disabled-bg: #f89406; --bs-btn-border-color: #f89406; --bs-btn-hover-border-color: #f89406; --bs-btn-active-border-color: #f89406; --bs-btn-disabled-border-color: #f89406; background-image: linear-gradient(to bottom, #fbb450, #f89406); border-bottom-color: #ad6704; }
-.btn-danger { --bs-btn-bg: #da4f49; --bs-btn-hover-bg: #bd362f; --bs-btn-active-bg: #942a25; --bs-btn-disabled-bg: #bd362f; --bs-btn-border-color: #bd362f; --bs-btn-hover-border-color: #bd362f; --bs-btn-active-border-color: #bd362f; --bs-btn-disabled-border-color: #bd362f; background-image: linear-gradient(to bottom, #ee5f5b, #bd362f); border-bottom-color: #802a25; }
+/* Per-variant colours (gradient top and bottom, base, pressed, bottom border) */
+
+.btn-primary { --cws-top: #0088cc; --cws-base: #0074cc; --cws-bottom: #0055cc; --cws-active: #004099; --cws-edge: #003580; }
+.btn-info { --cws-top: #5bc0de; --cws-base: #49afcd; --cws-bottom: #2f96b4; --cws-active: #24748c; --cws-edge: #1f6377; }
+.btn-success { --cws-top: #62c462; --cws-base: #5bb75b; --cws-bottom: #51a351; --cws-active: #408140; --cws-edge: #387038; }
+.btn-warning { --cws-top: #fbb450; --cws-base: #faa732; --cws-bottom: #f89406; --cws-active: #c67605; --cws-edge: #ad6704; }
+.btn-danger { --cws-top: #ee5f5b; --cws-base: #da4f49; --cws-bottom: #bd362f; --cws-active: #942a25; --cws-edge: #802a25; }
+
+.btn-primary, .btn-info, .btn-success, .btn-warning, .btn-danger {
+    --bs-btn-bg: var(--cws-base);
+    --bs-btn-hover-bg: var(--cws-bottom);
+    --bs-btn-active-bg: var(--cws-active);
+    --bs-btn-disabled-bg: var(--cws-bottom);
+    --bs-btn-border-color: var(--cws-bottom);
+    --bs-btn-hover-border-color: var(--cws-bottom);
+    --bs-btn-active-border-color: var(--cws-bottom);
+    --bs-btn-disabled-border-color: var(--cws-bottom);
+    background-image: linear-gradient(to bottom, var(--cws-top), var(--cws-bottom));
+    border-bottom-color: var(--cws-edge);
+}
 
 .btn-primary:active, .btn-info:active, .btn-success:active, .btn-warning:active, .btn-danger:active {
     background-image: none;
