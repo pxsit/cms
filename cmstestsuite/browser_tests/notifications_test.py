@@ -17,22 +17,12 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """Browser tests for the alerts that CWS builds in JavaScript when there
-is something new (announcement, message, answer)."""
+is something new (announcement, message, answer). Showing and dismissing
+them is tested in bootstrap_js_test.py."""
 
 from playwright.sync_api import expect
 
 from cmstestsuite.browser_tests import seed
-
-
-def test_notifications_are_shown_and_can_be_dismissed(page, base_url, login):
-    login(seed.READER)
-    # An announcement, a message and an answer exist before the login.
-    notifications = page.locator("#notifications > *")
-    expect(notifications).to_have_count(3)
-    expect(page.locator("#unread_count")).to_contain_text("3")
-
-    notifications.first.get_by_role("button", name="Close").click()
-    expect(notifications).to_have_count(2)
 
 
 def test_user_without_news_sees_only_the_announcement(page, base_url, login):

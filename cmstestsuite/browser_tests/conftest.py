@@ -18,28 +18,27 @@
 
 """Fixtures for the browser tests of the contest web server (CWS).
 
-The tests need the "browser-test" extra (Playwright and its browsers),
-a PostgreSQL database whose name ends in "fortesting", and a CMS_CONFIG
-pointing to it. They are run with:
+The tests need Playwright and its browser, a PostgreSQL database whose
+name ends in "fortesting", and a CMS_CONFIG pointing to it. They are run
+with:
 
+    pip install -c constraints.txt -r constraints-browser-test.txt
+    playwright install chromium
     pytest cmstestsuite/browser_tests
 
 """
 
 import os
-import subprocess
-import sys
-import time
-import urllib.error
-import urllib.request
 
 import pytest
 
 pytest.importorskip(
-    "playwright", reason="install the 'browser-test' extra to run these tests")
+    "playwright", reason="run 'pip install -c constraints.txt -r "
+    "constraints-browser-test.txt' to run these tests")
 
 from cms import config as cms_config  # noqa: E402
 from cmstestsuite.browser_tests import seed  # noqa: E402
+from cmstestsuite.browser_tests.servers import run_server  # noqa: E402
 
 
 def pytest_collection_modifyitems(items):
@@ -73,35 +72,10 @@ def base_url(seeded):
 
     """
     port = cms_config.contest_web_server.listen_port[0]
-    url = "http://127.0.0.1:%d/" % port
-    executable = os.path.join(sys.prefix, "bin", "cmsContestWebServer")
-    verbose = os.environ.get("CMS_BROWSER_TEST_VERBOSE")
-    proc = subprocess.Popen(
-        [executable, "0", "-c", str(seeded.contest_id)],
-        stdout=None if verbose else subprocess.DEVNULL,
-        stderr=None if verbose else subprocess.STDOUT)
-    try:
-        deadline = time.monotonic() + 60
-        while True:
-            if proc.poll() is not None:
-                raise RuntimeError(
-                    "ContestWebServer exited early with code %s "
-                    "(set CMS_BROWSER_TEST_VERBOSE=1 to see its output)"
-                    % proc.returncode)
-            try:
-                urllib.request.urlopen(url, timeout=2).close()
-                break
-            except (urllib.error.URLError, OSError):
-                if time.monotonic() > deadline:
-                    raise RuntimeError("ContestWebServer did not come up")
-                time.sleep(0.3)
+    with run_server("cmsContestWebServer",
+                    ["0", "-c", str(seeded.contest_id)],
+                    "http://127.0.0.1:%d/" % port) as url:
         yield url
-    finally:
-        proc.terminate()
-        try:
-            proc.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            proc.kill()
 
 
 @pytest.fixture(scope="session")
@@ -114,7 +88,8 @@ def browser_context_args(browser_context_args):
 
 
 # Console messages that are known to be noise rather than regressions.
-# Keep this list short and explain each entry.
+# Keep this list short and explain each entry. A test module can add its
+# own entries with a module-level ALLOWED_CONSOLE_ERRORS list.
 ALLOWED_CONSOLE_ERRORS: list[str] = []
 
 
@@ -127,10 +102,12 @@ def fail_on_browser_errors(request, page):
 
     """
     problems: list[str] = []
+    allowed = ALLOWED_CONSOLE_ERRORS + getattr(
+        request.module, "ALLOWED_CONSOLE_ERRORS", [])
 
     def on_console(msg):
         if msg.type == "error" and not any(
-                a in msg.text for a in ALLOWED_CONSOLE_ERRORS):
+                a in msg.text for a in allowed):
             problems.append("console error: %s" % msg.text)
 
     def on_page_error(exc):

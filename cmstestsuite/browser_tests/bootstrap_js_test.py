@@ -293,6 +293,8 @@ def test_login_error_alert_can_be_dismissed(page, base_url, seeded):
 
     alert = page.get_by_text("Failed to log in.")
     expect(alert).to_be_visible()
+    # The wrong password did not log the user in.
+    expect(page.get_by_role("button", name="Logout")).to_have_count(0)
     page.get_by_role("button", name="Close").click()
     expect(alert).to_have_count(0)
     # Dismissing the alert does not break the rest of the page.
@@ -328,7 +330,7 @@ def test_script_built_notification_can_be_dismissed(
     expect(page.get_by_text("Something happened")).to_be_visible()
 
     # Pick the button inside the alert that holds our title.
-    page.locator("#notifications .alert").filter(has=title).get_by_role(
+    page.locator("#notifications > *").filter(has=title).get_by_role(
         "button", name="Close").click()
     expect(title).to_have_count(0)
     expect(page.get_by_text("Something happened")).to_have_count(0)

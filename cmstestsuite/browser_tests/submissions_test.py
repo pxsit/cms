@@ -16,8 +16,9 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Browser tests for the submissions page: listing, details dialog,
-download, tokens and sending a new submission."""
+"""Browser tests for the submissions page: listing, details table,
+download, tokens and sending a new submission. Opening and closing the
+details dialog and the download menu are tested in bootstrap_js_test.py."""
 
 from playwright.sync_api import expect
 
@@ -43,31 +44,6 @@ def test_no_submissions_is_an_empty_list(page, base_url, login):
     login(seed.NOBODY)
     open_submissions(page, base_url)
     expect(page.locator(ROWS)).to_have_count(0)
-
-
-def test_submission_details_open_in_a_dialog(page, base_url, login):
-    login(seed.READER)
-    open_submissions(page, base_url)
-    dialog = page.locator("#submission_detail")
-    expect(dialog).to_be_hidden()
-
-    page.get_by_text("details", exact=True).first.click()
-    expect(dialog).to_be_visible()
-    expect(dialog.get_by_text("Output is correct")).to_be_visible()
-
-    dialog.get_by_text("Close", exact=True).click()
-    expect(dialog).to_be_hidden()
-
-
-def test_submission_details_close_with_the_x(page, base_url, login):
-    login(seed.READER)
-    open_submissions(page, base_url)
-    page.get_by_text("details", exact=True).first.click()
-    dialog = page.locator("#submission_detail")
-    expect(dialog).to_be_visible()
-    # The footer's "Close" may be a link or a button; the x comes first.
-    dialog.get_by_role("button", name="Close").first.click()
-    expect(dialog).to_be_hidden()
 
 
 def test_download_submitted_file(page, base_url, login):
@@ -114,3 +90,15 @@ def test_submit_nothing_creates_no_submission(page, base_url, login):
     page.get_by_role("button", name="Submit").first.click()
     open_submissions(page, base_url)
     expect(page.locator(ROWS)).to_have_count(0)
+
+
+def test_details_dialog_lists_testcases_in_a_table(page, base_url, login):
+    login(seed.READER)
+    open_submissions(page, base_url)
+    page.get_by_text("details", exact=True).first.click()
+    dialog = page.locator("#submission_detail")
+    table = dialog.get_by_role("table").filter(has_text="Correct")
+    expect(table).to_be_visible()
+    expect(dialog.get_by_role("columnheader", name="Outcome")).to_be_visible()
+    expect(dialog.get_by_role("cell", name="Correct", exact=True)) \
+        .to_be_visible()

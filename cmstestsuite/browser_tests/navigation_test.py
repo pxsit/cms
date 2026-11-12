@@ -71,13 +71,15 @@ def test_language_selector_switches_language(reader):
         pytest.skip("only one translation is installed")
     codes = [o.get_attribute("value")
              for o in selector.locator("option").all()]
-    target = next(c for c in codes if c and not c.startswith("en"))
+    target = next(
+        (c for c in codes if c and not c.startswith("en")), None)
+    if target is None:
+        pytest.skip("no translation other than English is installed")
+    # The language is kept in a cookie, and each test has a new browser
+    # context, so other tests still see English.
     with reader.expect_navigation():
         selector.select_option(target)
     expect(reader.locator("#lang")).to_have_value(target)
-    # Put the automatic language back, so later tests see English.
-    with reader.expect_navigation():
-        reader.locator("#lang").select_option("")
 
 
 @pytest.mark.allow_browser_errors

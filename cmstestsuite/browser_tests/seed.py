@@ -23,14 +23,14 @@ so the browser tests do not depend on the import path of cmscontrib.
 
 """
 
-import hashlib
+import functools
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
 from cms.db import Announcement, File, Message, Question, Session, \
     Statement, SubmissionResult, Testcase, UserTest, UserTestFile, \
     UserTestResult, drop_db, engine, init_db
-from cms.db.filecacher import DBBackend
+from cms.db.filecacher import FileCacher
 from cmscommon.crypto import build_password
 from cmstestsuite.unit_tests.databasemixin import DatabaseObjectGeneratorMixin
 
@@ -80,17 +80,15 @@ def _now() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
+@functools.cache
+def _file_cacher() -> FileCacher:
+    # Each FileCacher makes its own temporary directories, so share one.
+    return FileCacher()
+
+
 def _store_file(content: bytes) -> str:
     """Put content in the file store, and return its digest."""
-    digest = hashlib.sha1(content).hexdigest()
-    backend = DBBackend()
-    fobj = backend.create_file(digest)
-    if fobj is None:
-        # The same content was already stored.
-        return digest
-    fobj.write(content)
-    backend.commit_file(fobj, digest)
-    return digest
+    return _file_cacher().put_file_content(content, "browser test fixture")
 
 
 def seed_database() -> SeededData:
