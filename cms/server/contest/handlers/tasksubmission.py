@@ -143,9 +143,11 @@ class TaskSubmissionsHandler(ContestHandler):
         )
 
         public_score, is_public_score_partial = task_score(
-            participation, task, public=True)
+            participation, task, public=True, submissions=submissions)
         tokened_score, is_tokened_score_partial = task_score(
-            participation, task, only_tokened=self.r_params["actual_phase"] != 3)
+            participation, task,
+            only_tokened=self.r_params["actual_phase"] != 3,
+            submissions=submissions)
         # These two should be the same, anyway.
         is_score_partial = is_public_score_partial or is_tokened_score_partial
 
@@ -212,27 +214,33 @@ class SubmissionStatusHandler(ContestHandler):
             public and tokened, the fields are:
             "score" and "score_message"; in addition we have
             "task_is_score_partial" as partial info is the same for both.
-            "task_use_tokened_score" selects the full score for task badges.
+            "task_badge_score", "task_badge_max_score",
+            "task_badge_message" and "task_badge_is_partial" describe the
+            score shown in the sidebar badge (all null if it is N/A).
 
         """
         # Just to preload all information required to compute the task score.
-        self.sql_session.query(Submission)\
+        submissions = self.sql_session.query(Submission)\
             .filter(Submission.participation == participation)\
             .filter(Submission.task == task)\
             .options(joinedload(Submission.token))\
             .options(joinedload(Submission.results))\
             .all()
         data["task_public_score"], public_score_is_partial = \
-            task_score(participation, task, public=True)
+            task_score(participation, task, public=True, submissions=submissions)
         data["task_tokened_score"], tokened_score_is_partial = \
             task_score(participation, task,
-                       only_tokened=self.r_params["actual_phase"] != 3)
-        data["task_use_tokened_score"] = self.r_params["actual_phase"] == 3 or any(
-            s.official and s.task_id == task.id and s.tokened()
-            for s in participation.submissions)
+                       only_tokened=self.r_params["actual_phase"] != 3,
+                       submissions=submissions)
         # These two should be the same, anyway.
         data["task_score_is_partial"] = \
             public_score_is_partial or tokened_score_is_partial
+
+        badge = self._task_badge_score(
+            participation, task, submissions, self.r_params["actual_phase"])
+        (data["task_badge_score"], data["task_badge_max_score"],
+         data["task_badge_message"], data["task_badge_is_partial"]) = (
+            badge if badge is not None else (None, None, None, None))
 
         score_type = task.active_dataset.score_type_object
         data["task_public_score_message"] = score_type.format_score(
