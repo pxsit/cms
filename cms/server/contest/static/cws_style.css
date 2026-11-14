@@ -462,9 +462,17 @@ td.token_rules p:last-child {
     background-color: hsla(120, 100%, 50%, 0.4);
 }
 
-.nav-list .nav-header .task_score_badge {
+.nav-list .nav-header .task_score_wrap {
     float: right;
     margin-right: 5px;
+}
+.nav-list .nav-header .task_score_wrap img {
+    height: 10px;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+.nav-list .nav-header .task_score_badge {
+    display: inline-block;
     padding: 1px 6px;
     border-radius: 4px;
     font-size: 10px;
@@ -476,6 +484,11 @@ td.token_rules p:last-child {
 .nav-list .nav-header .task_score_badge.undefined {
     color: #888;
     background-color: transparent;
+}
+.main_task_list td.public_score img.task_score_loading {
+    height: 12px;
+    margin-left: 8px;
+    vertical-align: middle;
 }
 /*** Submit a solution */
 
@@ -568,6 +581,10 @@ td.token_rules p:last-child {
 
 .submission_list tbody tr td.token form {
     display: inline;
+}
+
+.main_task_list td.public_score.undefined {
+    color: #AAA;
 }
 
 .submission_list td.public_score.undefined {
@@ -1067,4 +1084,9 @@ td.token_rules p:last-child {
     padding: 8px 14px;
     background-color: white;
     border: 1px solid #e5e5e5;
+}
+
+#overview_total_score {
+    justify-content: center;
+    text-align: center;
 }

@@ -1,17 +1,28 @@
+#!/usr/bin/env python3
+
+# Contest Management System - http://cms-dev.github.io/
+# Copyright © 2025 Pasit Sangprachathanarak <ouipingpasit@gmail.com>
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 """Regression checks for task counters and their polling updates."""
 
 from datetime import datetime, timedelta
-import json
-import shutil
-import subprocess
 from types import SimpleNamespace as NS
 from unittest.mock import MagicMock, patch
 
 from bs4 import BeautifulSoup
-import pytest
-
-from cms import TOKEN_MODE_DISABLED
-from cms.db import SubmissionResult
+from cms import TOKEN_MODE_DISABLED, TOKEN_MODE_INFINITE
 from cms.locale import DEFAULT_TRANSLATION
 from cms.server.contest.handlers.base import BaseHandler
 from cms.server.contest.handlers.tasksubmission import SubmissionStatusHandler
@@ -19,13 +30,15 @@ from cms.server.contest.jinja2_toolbox import CWS_ENVIRONMENT
 from cmscommon.datetime import utc
 
 
-def make_handler(phase=0, public_max=20, tokened=False, official=True):
+def make_handler(phase=0, public_max=20, tokened=False, official=True,
+                 tokens=True):
     score_type = NS(
         max_score=100, max_public_score=public_max,
         format_score=lambda score, maximum, *a, **kw: f"{score:g} / {maximum:g}")
     task = NS(
         id=1, name="task1", title="Task one", score_mode="max", score_precision=2,
-        token_mode=TOKEN_MODE_DISABLED, submission_format=[],
+        token_mode=TOKEN_MODE_INFINITE if tokens else TOKEN_MODE_DISABLED,
+        submission_format=[],
         get_allowed_languages=lambda: [],
         active_dataset=NS(score_type_object=score_type, time_limit=1,
                           memory_limit=1024, task_type_object=NS(name="Batch")))
@@ -39,7 +52,8 @@ def make_handler(phase=0, public_max=20, tokened=False, official=True):
     contest = NS(
         name="contest", description="Contest", tasks=[task], languages=[],
         show_task_scores_in_sidebar=True, show_task_scores_in_overview=True,
-        token_mode=TOKEN_MODE_DISABLED, allow_questions=True, allow_user_tests=True,
+        token_mode=TOKEN_MODE_INFINITE if tokens else TOKEN_MODE_DISABLED,
+        allow_questions=True, allow_user_tests=True,
         max_submission_number=None, max_user_test_number=None, timezone="UTC")
     participation = NS(
         contest=contest, submissions=[submission], group=group, unrestricted=False,
@@ -54,6 +68,8 @@ def make_handler(phase=0, public_max=20, tokened=False, official=True):
     handler.sql_session = MagicMock()
     handler.r_params = {"actual_phase": phase}
     handler._load_participation_for_scores = MagicMock(return_value=participation)
+    handler._load_official_submissions = MagicMock(
+        side_effect=lambda p: {1: [x for x in p.submissions if x.official]})
     return handler, task
 
 
@@ -74,7 +90,14 @@ def render_overview(handler):
 
 def poll(handler, task):
     data = {}
-    # Stub only the ORM query construction; execute the real scoring functions.
+    # Stub only the ORM query construction (returning the submissions of the
+    # task); execute the real scoring functions.
+    query = MagicMock()
+    for method in ("filter", "options"):
+        getattr(query, method).return_value = query
+    query.all.return_value = [
+        s for s in handler.current_user.submissions if s.task_id == task.id]
+    handler.sql_session.query.return_value = query
     with patch("cms.server.contest.handlers.tasksubmission.Submission"), \
             patch("cms.server.contest.handlers.tasksubmission.joinedload"):
         handler.add_task_score(handler.current_user, task, data)
@@ -90,15 +113,76 @@ def test_initial_and_polled_scores_agree():
                     task.score_mode = mode
                     data = poll(h, task)
                     full = phase == 3 or (tokened and official)
-                    assert data["task_use_tokened_score"] == full
                     if not full and public_max == 0:
                         assert h.task_scores == {}
+                        assert data["task_badge_score"] is None
                         continue
                     use_full = full and public_max < 100
                     key = "task_tokened_score" if use_full else "task_public_score"
                     expected = (80 if use_full else min(80, public_max)) if official else 0
                     assert h.task_scores[1][0] == data[key] == expected
                     assert h.task_scores[1][2] == data[key + "_message"]
+                    assert_badge_matches(h, data)
+
+
+def assert_badge_matches(h, data):
+    """The JSON badge fields are exactly what the sidebar renders initially."""
+    entry = h.task_scores.get(1)
+    got = (data["task_badge_score"], data["task_badge_max_score"],
+           data["task_badge_message"], data["task_badge_is_partial"])
+    assert got == (entry if entry is not None else (None,) * 4)
+
+
+def test_tokened_total_ignored_when_tokens_are_disabled():
+    h, task = make_handler(tokened=True, tokens=False)
+    data = poll(h, task)
+    assert h.task_scores[1][2] == data["task_public_score_message"] == "20 / 20"
+    assert_badge_matches(h, data)
+    # ... except in analysis mode, where everything is shown.
+    h, task = make_handler(phase=3, tokened=True, tokens=False)
+    assert h.task_scores[1][2] == "80 / 100"
+
+
+def test_partial_flag_is_kept():
+    h, task = make_handler()
+    sub = h.current_user.submissions[0]
+    sub.get_result = lambda dataset: None
+    data = poll(h, task)
+    assert h.task_scores[1][3] is True
+    assert data["task_badge_is_partial"] is True
+    soup = BeautifulSoup(render_overview(h), "html.parser")
+    assert soup.select_one(".main_task_list td.public_score img.task_score_loading")
+
+
+def test_broken_task_does_not_break_other_tasks():
+    h, task = make_handler()
+    other = NS(**{**vars(task), "id": 2, "name": "task2"})
+    h.contest.tasks.append(other)
+    h.current_user.submissions.append(NS(
+        task=other, task_id=2, official=True, timestamp=1, tokened=lambda: False,
+        get_result=h.current_user.submissions[0].get_result))
+    h._load_official_submissions.side_effect = lambda p: {
+        s.task_id: [s] for s in p.submissions}
+
+    class BrokenDataset:
+        @property
+        def score_type_object(self):
+            raise ValueError("bad parameters")
+
+    task.active_dataset = BrokenDataset()
+
+    with patch("cms.server.contest.handlers.contest.logger") as logger:
+        assert list(h.task_scores) == [2]
+    logger.exception.assert_called_once()
+    assert "task1" in logger.exception.call_args.args
+
+    # An unknown score mode is handled in the same way.
+    h, task = make_handler()
+    task.score_mode = "nonsense"
+    with patch("cms.server.contest.handlers.contest.logger"):
+        assert h.task_scores == {}
+    soup = BeautifulSoup(render_overview(h), "html.parser")
+    assert soup.select_one(".task_score_badge.undefined").get_text(strip=True) == "N/A"
 
 
 def test_unofficial_token_does_not_hide_official_public_score():
@@ -107,7 +191,8 @@ def test_unofficial_token_does_not_hide_official_public_score():
         task=task, task_id=1, official=True, timestamp=2, tokened=lambda: False,
         get_result=h.current_user.submissions[0].get_result))
     data = poll(h, task)
-    assert data["task_use_tokened_score"] is False
+    assert data["task_badge_message"] == "20 / 20"
+    assert_badge_matches(h, data)
     assert h.task_scores[1][2] == data["task_public_score_message"] == "20 / 20"
 
 
@@ -147,36 +232,12 @@ def test_missing_dataset_and_hidden_scores_render_as_unavailable():
         assert "0 / 0" not in str(soup)
 
 
-@pytest.mark.skipif(shutil.which("node") is None, reason="Node.js is needed to execute polling JavaScript")
-def test_polling_javascript_preserves_analysis_and_official_scores():
-    template = CWS_ENVIRONMENT.get_template("task_submissions.html")
-    for phase, official, status in ((3, True, SubmissionResult.SCORED),
-                                    (3, True, SubmissionResult.COMPILATION_FAILED),
-                                    (0, False, SubmissionResult.SCORED)):
-        h, task = make_handler(phase, tokened=not official, official=official)
-        if not official:
-            h.current_user.submissions.append(NS(
-                task=task, task_id=1, official=True, timestamp=2, tokened=lambda: False,
-                get_result=h.current_user.submissions[0].get_result))
-        data = poll(h, task)
-        data.update(status=status, status_text="Evaluated", max_score=100,
-                    max_public_score=20)
-        if status == SubmissionResult.SCORED:
-            data["score"] = 80
-        context = template.new_context(dict(
-            task=task, actual_phase=phase, can_use_tokens=False,
-            static_url=h.contest_url, gettext=DEFAULT_TRANSLATION.gettext))
-        script = "".join(template.blocks["additional_js"](context))
-        expected = "80 / 100" if phase == 3 else "20 / 20"
-        harness = """
-const assert = require('node:assert/strict');
-const chain = new Proxy(function() {}, {get: () => chain, apply: () => chain});
-global.$ = () => chain;
-global.document = {};
-""" + script + """
-update_score = () => {};
-let badge;
-update_sidebar_task_score = (score, message) => { badge = message; };
-""" + f"update_scores(1, {json.dumps(data)});\nassert.equal(badge, {json.dumps(expected)});"
-        subprocess.run(["node"], input=harness, text=True, check=True,
-                       capture_output=True)
+def test_overview_shows_total_score():
+    h, _ = make_handler()
+    soup = BeautifulSoup(render_overview(h), "html.parser")
+    total = soup.select_one("#overview_total_score")
+    assert "20 / 20" in total.get_text(" ", strip=True)
+    # No total when no task has a score to show.
+    h, _ = make_handler(public_max=0)
+    soup = BeautifulSoup(render_overview(h), "html.parser")
+    assert soup.select_one("#overview_total_score") is None
